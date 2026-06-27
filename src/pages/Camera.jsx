@@ -69,41 +69,53 @@ export default function Camera() {
 
   async function handleConfirm() {
     try {
-      // Find or create card in DB
-      let { data: card } = await supabase
+      const number = identified.number.split('/')[0].padStart(3, '0')
+      const setCode = identified.setCode
+
+      // Find card in DB
+      const { data: card, error: findErr } = await supabase
         .from('cards')
         .select('*')
-        .eq('number', identified.number.split('/')[0].padStart(3, '0'))
-        .eq('set_code', identified.setCode)
-        .single()
+        .eq('number', number)
+        .eq('set_code', setCode)
+        .maybeSingle()
 
-      if (!card) {
-        // Insert from TCG API data
-        const { data: inserted } = await supabase.from('cards').insert({
-          name: identified.name,
-          number: identified.number.split('/')[0].padStart(3, '0'),
-          set_code: identified.setCode,
-          nationality: 'PT-BR',
-          rarity: tcgCard?.rarity || identified.rarity,
-          image_url: tcgCard?.images?.large || tcgCard?.images?.small || '',
-        }).select().single()
-        card = inserted
+      let cardId
+
+      if (card) {
+        cardId = card.id
+      } else {
+        // Card not in DB yet — insert it
+        const newId = `pfl-${number}`
+        const { data: inserted, error: insertErr } = await supabase
+          .from('cards')
+          .upsert({
+            id: newId,
+            name: identified.name,
+            number,
+            set_code: setCode,
+            nationality: 'PT-BR',
+            rarity: tcgCard?.rarity || identified.rarity || null,
+            image_url: tcgCard?.images?.large || tcgCard?.images?.small || '',
+          }, { onConflict: 'id' })
+          .select()
+          .single()
+
+        if (insertErr) throw new Error(`Insert card: ${insertErr.message}`)
+        cardId = inserted.id
       }
 
-      await upsertCard(card.id)
+      await upsertCard(cardId)
 
       if (price?.price) {
-        await savePrice(card.id, price.price, price.source)
+        await savePrice(cardId, price.price, price.source)
       }
 
-      // Animação de sucesso
       setFlyCard(true)
-      setTimeout(() => {
-        setState(STATES.SUCCESS)
-      }, 500)
+      setTimeout(() => setState(STATES.SUCCESS), 500)
     } catch (e) {
-      console.error(e)
-      setErrorMsg('Erro ao salvar carta. Tente novamente.')
+      console.error('handleConfirm error:', e)
+      setErrorMsg(`Erro ao salvar carta: ${e.message}`)
       setState(STATES.ERROR)
     }
   }
