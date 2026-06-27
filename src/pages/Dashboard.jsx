@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getCollection, getLatestPrices } from '../services/supabase'
+import { fetchAllData, savePriceApi } from '../services/api'
 import { fetchPrice } from '../services/pricing'
-import { savePrice } from '../services/supabase'
 import { brl, formatDate } from '../utils/format'
 import PokeballLoader from '../components/PokeballLoader'
 
@@ -24,7 +23,7 @@ export default function Dashboard() {
 
   async function loadData() {
     try {
-      const [col, priceMap] = await Promise.all([getCollection(), getLatestPrices()])
+      const { collection: col, prices: priceMap } = await fetchAllData()
       setCollection(col || [])
       setPrices(priceMap || {})
       if (priceMap && Object.values(priceMap).length > 0) {
@@ -34,7 +33,7 @@ export default function Dashboard() {
         setLastUpdate(latest.date_recorded)
       }
     } catch (e) {
-      console.warn('Supabase não configurado:', e.message)
+      console.warn('Erro ao carregar dados:', e.message)
       setCollection([])
       setPrices({})
     } finally {
@@ -66,7 +65,7 @@ export default function Dashboard() {
               } else {
                 report.same.push({ name: card.name })
               }
-              await savePrice(card.id, result.price, result.source)
+              await savePriceApi(card.id, result.price, result.source)
             }
           } catch (e) {
             console.error('Price fetch error:', e)

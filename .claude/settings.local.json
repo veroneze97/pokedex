@@ -11,7 +11,24 @@
       "Bash(git add *)",
       "Bash(git rm *)",
       "Bash(git commit -m 'feat: PokéDex PT-BR — scaffold inicial completo *)",
-      "Bash(git commit -m 'fix: remover node_modules do tracking *)"
+      "Bash(git commit -m 'fix: remover node_modules do tracking *)",
+      "Bash(git remote *)",
+      "Bash(git push *)",
+      "mcp__Claude_in_Chrome__navigate",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "mcp__f3241ab2-ab5b-4ce1-89c7-ce37718ad94c__list_projects",
+      "Bash(node --input-type=module)",
+      "Bash(git commit -m 'config: adicionar type module e ajustar vercel.json para deploy *)",
+      "mcp__3a4e05bd-c143-4349-8e80-329e28dfe148__deploy_to_vercel",
+      "Bash(vercel deploy *)",
+      "Bash(vercel env *)",
+      "Bash(vercel ls *)",
+      "Bash(vercel inspect *)",
+      "Bash(vercel alias *)",
+      "mcp__3a4e05bd-c143-4349-8e80-329e28dfe148__get_runtime_logs",
+      "Bash(git commit -m 'fix: corrigir handleConfirm — usar maybeSingle e propagar erro real *)",
+      "Bash(git commit -m 'fix: substituir scraping bloqueado por ML API + TCG API para preços *)",
+      "Bash(git commit -m 'fix: mover operações DB para servidor usando service role key *)"
     ]
   }
 }

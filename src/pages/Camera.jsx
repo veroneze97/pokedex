@@ -3,17 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import { identifyCard } from '../services/vision'
 import { searchCard } from '../services/tcgApi'
 import { fetchPrice } from '../services/pricing'
-import { upsertCard, savePrice, supabase } from '../services/supabase'
+import { addCardToCollection, savePriceApi } from '../services/api'
 import { brl, rarityLabel } from '../utils/format'
 import PokeballLoader from '../components/PokeballLoader'
 
-const STATES = {
-  PREVIEW: 'preview',
-  PROCESSING: 'processing',
-  CONFIRM: 'confirm',
-  SUCCESS: 'success',
-  ERROR: 'error',
-}
+const STATES = { PREVIEW: 'preview', PROCESSING: 'processing', CONFIRM: 'confirm', SUCCESS: 'success', ERROR: 'error' }
 
 export default function Camera() {
   const navigate = useNavigate()
@@ -32,8 +26,7 @@ export default function Camera() {
     const reader = new FileReader()
     reader.onload = async (ev) => {
       const base64 = ev.target.result.split(',')[1]
-      const dataUrl = ev.target.result
-      setCapturedImage(dataUrl)
+      setCapturedImage(ev.target.result)
       setState(STATES.PROCESSING)
       await processImage(base64)
     }
@@ -50,10 +43,7 @@ export default function Camera() {
         return
       }
 
-      // Busca dados na TCG API
-      const tcg = await searchCard(result.number, result.setCode)
-
-      // Busca preço
+      const tcg = await searchCard(result.number, result.setCode).catch(() => null)
       let priceData = null
       try { priceData = await fetchPrice(result.name, result.setCode) } catch (_) {}
 
@@ -70,52 +60,23 @@ export default function Camera() {
   async function handleConfirm() {
     try {
       const number = identified.number.split('/')[0].padStart(3, '0')
-      const setCode = identified.setCode
+      const result = await addCardToCollection({
+        number,
+        setCode: identified.setCode,
+        name: identified.name,
+        rarity: tcgCard?.rarity || identified.rarity,
+        imageUrl: tcgCard?.images?.large || tcgCard?.images?.small || '',
+      })
 
-      // Find card in DB
-      const { data: card, error: findErr } = await supabase
-        .from('cards')
-        .select('*')
-        .eq('number', number)
-        .eq('set_code', setCode)
-        .maybeSingle()
-
-      let cardId
-
-      if (card) {
-        cardId = card.id
-      } else {
-        // Card not in DB yet — insert it
-        const newId = `pfl-${number}`
-        const { data: inserted, error: insertErr } = await supabase
-          .from('cards')
-          .upsert({
-            id: newId,
-            name: identified.name,
-            number,
-            set_code: setCode,
-            nationality: 'PT-BR',
-            rarity: tcgCard?.rarity || identified.rarity || null,
-            image_url: tcgCard?.images?.large || tcgCard?.images?.small || '',
-          }, { onConflict: 'id' })
-          .select()
-          .single()
-
-        if (insertErr) throw new Error(`Insert card: ${insertErr.message}`)
-        cardId = inserted.id
-      }
-
-      await upsertCard(cardId)
-
-      if (price?.price) {
-        await savePrice(cardId, price.price, price.source)
+      if (price?.price && result.cardId) {
+        await savePriceApi(result.cardId, price.price, price.source).catch(() => {})
       }
 
       setFlyCard(true)
       setTimeout(() => setState(STATES.SUCCESS), 500)
     } catch (e) {
       console.error('handleConfirm error:', e)
-      setErrorMsg(`Erro ao salvar carta: ${e.message}`)
+      setErrorMsg(e.message || 'Erro ao salvar carta. Tente novamente.')
       setState(STATES.ERROR)
     }
   }
@@ -131,19 +92,13 @@ export default function Camera() {
     if (fileRef.current) fileRef.current.value = ''
   }
 
-  // ── PREVIEW / câmera ──────────────────────────────────────────────────────
   if (state === STATES.PREVIEW) {
     return (
       <div className="relative flex flex-col items-center justify-center h-full bg-black">
-        {/* Back */}
-        <button
-          onClick={() => navigate(-1)}
-          className="absolute top-12 left-4 z-10 text-white bg-black/50 p-2 rounded-full"
-        >
+        <button onClick={() => navigate(-1)} className="absolute top-12 left-4 z-10 text-white bg-black/50 p-2 rounded-full">
           <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" /></svg>
         </button>
 
-        {/* Viewfinder */}
         <div className="relative w-72 h-96 border-2 border-white/30 rounded-2xl overflow-hidden flex items-center justify-center">
           <div className="text-gray-600 text-center px-6">
             <svg viewBox="0 0 24 24" fill="currentColor" className="w-16 h-16 mx-auto mb-3 text-gray-700">
@@ -151,43 +106,30 @@ export default function Camera() {
             </svg>
             <p className="text-sm text-gray-500">Posicione a carta dentro da moldura</p>
           </div>
-          {/* Corner guides */}
           {['top-2 left-2 border-t-2 border-l-2', 'top-2 right-2 border-t-2 border-r-2', 'bottom-2 left-2 border-b-2 border-l-2', 'bottom-2 right-2 border-b-2 border-r-2'].map((cls, i) => (
-            <div key={i} className={`absolute ${cls} border-pokered w-6 h-6 rounded-sm`} />
+            <div key={i} className={`absolute ${cls} border-red-500 w-6 h-6 rounded-sm`} />
           ))}
         </div>
 
         <p className="text-gray-400 text-sm mt-6 mb-8">Centralise a carta e tire a foto</p>
 
-        {/* Capture button */}
         <label className="w-20 h-20 bg-white rounded-full flex items-center justify-center cursor-pointer shadow-xl active:scale-95 transition-transform">
           <div className="w-16 h-16 bg-white rounded-full border-4 border-gray-300" />
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={handleCapture}
-          />
+          <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleCapture} />
         </label>
       </div>
     )
   }
 
-  // ── PROCESSING ────────────────────────────────────────────────────────────
   if (state === STATES.PROCESSING) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-6 bg-[#1a1a1a]">
-        {capturedImage && (
-          <img src={capturedImage} alt="" className="w-48 rounded-xl opacity-30" />
-        )}
+        {capturedImage && <img src={capturedImage} alt="" className="w-48 rounded-xl opacity-30" />}
         <PokeballLoader size={64} text="Identificando carta..." />
       </div>
     )
   }
 
-  // ── CONFIRM ───────────────────────────────────────────────────────────────
   if (state === STATES.CONFIRM) {
     const imgSrc = tcgCard?.images?.large || tcgCard?.images?.small || capturedImage
     return (
@@ -195,16 +137,10 @@ export default function Camera() {
         <div className="safe-top p-4">
           <p className="text-gray-400 text-sm">Confirmar carta</p>
         </div>
-
         <div className="flex-1 overflow-y-auto px-4 space-y-4">
           <div className="flex justify-center">
-            <img
-              src={imgSrc}
-              alt={identified?.name}
-              className={`w-52 rounded-2xl shadow-2xl ${flyCard ? 'card-fly' : ''}`}
-            />
+            <img src={imgSrc} alt={identified?.name} className={`w-52 rounded-2xl shadow-2xl ${flyCard ? 'card-fly' : ''}`} />
           </div>
-
           <div className="bg-[#2a2a2a] rounded-xl p-4 space-y-2">
             <Row label="Nome" value={identified?.name} bold />
             <Row label="Número" value={identified?.number} />
@@ -214,18 +150,11 @@ export default function Camera() {
             {price?.price && <Row label="Preço atual" value={brl(price.price)} highlight />}
           </div>
         </div>
-
         <div className="px-4 flex gap-3 mt-4">
-          <button
-            onClick={reset}
-            className="flex-1 py-3 rounded-xl border border-[#555] text-gray-300 font-medium text-sm active:bg-[#333]"
-          >
+          <button onClick={reset} className="flex-1 py-3 rounded-xl border border-[#555] text-gray-300 font-medium text-sm active:bg-[#333]">
             Tentar Novamente
           </button>
-          <button
-            onClick={handleConfirm}
-            className="flex-1 py-3 rounded-xl bg-pokered text-white font-semibold text-sm active:bg-pokered-dark"
-          >
+          <button onClick={handleConfirm} className="flex-1 py-3 rounded-xl bg-red-600 text-white font-semibold text-sm active:bg-red-700">
             Adicionar à Coleção
           </button>
         </div>
@@ -233,7 +162,6 @@ export default function Camera() {
     )
   }
 
-  // ── SUCCESS ───────────────────────────────────────────────────────────────
   if (state === STATES.SUCCESS) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-6 bg-[#1a1a1a] px-6 text-center">
@@ -247,16 +175,10 @@ export default function Camera() {
           <p className="text-gray-400 text-sm">{identified?.name} foi adicionada à sua coleção</p>
         </div>
         <div className="flex gap-3 w-full">
-          <button
-            onClick={reset}
-            className="flex-1 py-3 rounded-xl bg-[#2a2a2a] text-gray-300 font-medium text-sm"
-          >
+          <button onClick={reset} className="flex-1 py-3 rounded-xl bg-[#2a2a2a] text-gray-300 font-medium text-sm">
             Fotografar outra
           </button>
-          <button
-            onClick={() => navigate('/')}
-            className="flex-1 py-3 rounded-xl bg-pokered text-white font-semibold text-sm"
-          >
+          <button onClick={() => navigate('/')} className="flex-1 py-3 rounded-xl bg-red-600 text-white font-semibold text-sm">
             Ver coleção
           </button>
         </div>
@@ -264,7 +186,6 @@ export default function Camera() {
     )
   }
 
-  // ── ERROR ─────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col items-center justify-center h-full gap-6 bg-[#1a1a1a] px-6 text-center">
       <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center">
@@ -273,10 +194,7 @@ export default function Camera() {
         </svg>
       </div>
       <p className="text-gray-300 text-sm leading-relaxed">{errorMsg}</p>
-      <button
-        onClick={reset}
-        className="w-full py-3 rounded-xl bg-pokered text-white font-semibold text-sm"
-      >
+      <button onClick={reset} className="w-full py-3 rounded-xl bg-red-600 text-white font-semibold text-sm">
         Tentar Novamente
       </button>
       <button onClick={() => navigate(-1)} className="text-gray-500 text-sm">Voltar</button>
@@ -288,7 +206,7 @@ function Row({ label, value, bold, highlight }) {
   return (
     <div className="flex justify-between items-center">
       <span className="text-gray-500 text-sm">{label}</span>
-      <span className={`text-sm ${bold ? 'font-bold text-white' : highlight ? 'font-bold text-pokered' : 'text-gray-200'}`}>
+      <span className={`text-sm ${bold ? 'font-bold text-white' : highlight ? 'font-bold text-red-500' : 'text-gray-200'}`}>
         {value || '—'}
       </span>
     </div>

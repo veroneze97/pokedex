@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { getAllCards, getCollection } from '../services/supabase'
+import { fetchAllData } from '../services/api'
 import CardTile from '../components/CardTile'
 import PokeballLoader from '../components/PokeballLoader'
 
@@ -18,10 +18,10 @@ export default function Pokedex() {
 
   async function loadAll() {
     try {
-      const [allCards, col] = await Promise.all([getAllCards(), getCollection()])
-      setCards(allCards)
+      const { cards: allCards, collection: col } = await fetchAllData()
+      setCards(allCards || [])
       const map = {}
-      for (const item of col) map[item.card_id] = item
+      for (const item of (col || [])) map[item.card_id] = item
       setCollection(map)
     } catch (e) {
       console.error(e)
