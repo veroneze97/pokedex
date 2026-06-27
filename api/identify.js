@@ -22,15 +22,17 @@ export default async function handler(req, res) {
             },
             {
               type: 'text',
-              text: `Analise esta carta Pokémon TCG e extraia as seguintes informações em JSON:
-- name: nome do Pokémon (ex: "Genesect", "Charizard ex")
-- number: número da carta no formato "NNN/TTT" (ex: "008/094")
-- setCode: código do set incluindo sufixo de idioma (ex: "PFLpt" para PT-BR, "PFL" para inglês)
-- rarity: raridade em inglês como aparece na carta (ex: "Common", "Uncommon", "Rare", "Ultra Rare")
-- isValidPTBR: true se o setCode terminar em "pt" (impressão PT-BR), false caso contrário
+              text: `Analise esta carta Pokémon TCG (pode ser Pokémon, Treinador ou Energia) e extraia as informações em JSON.
+
+Regras:
+- name: nome completo da carta como aparece impressa (ex: "Genesect", "Charizard ex", "Megassinal", "Energia Fogo")
+- number: número da carta no rodapé, formato "NNN/TTT" (ex: "008/094", "121/132")
+- setCode: se a carta tiver texto em português → use exatamente "PFLpt"; se estiver em inglês → use o código do set (ex: "sv8pt5")
+- rarity: raridade como aparece na carta em inglês (ex: "Common", "Uncommon", "Rare", "Ultra Rare", "Trainer")
+- isValidPTBR: true se a carta estiver em português (setCode = "PFLpt")
 
 Responda APENAS com JSON válido, sem markdown, sem explicações:
-{"name":"...","number":"...","setCode":"...","rarity":"...","isValidPTBR":true}`,
+{"name":"...","number":"...","setCode":"PFLpt","rarity":"...","isValidPTBR":true}`,
             },
           ],
         },

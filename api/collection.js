@@ -28,21 +28,47 @@ export default async function handler(req, res) {
       .maybeSingle()
 
     if (!card) {
-      const { data: inserted, error: ie } = await supabase
+      // Try to find by canonical ID regardless of set_code (handles set_code mismatches)
+      const canonicalId = `pfl-${number}`
+      const { data: byId } = await supabase
         .from('cards')
-        .upsert({
-          id: `pfl-${number}`,
-          name,
-          number,
-          set_code: setCode,
-          nationality: 'PT-BR',
-          rarity: rarity || null,
-          image_url: imageUrl || '',
-        }, { onConflict: 'id' })
-        .select()
-        .single()
-      if (ie) return res.status(500).json({ error: ie.message })
-      card = inserted
+        .select('*')
+        .eq('id', canonicalId)
+        .maybeSingle()
+
+      if (byId) {
+        card = byId
+        // Update set_code to canonical if wrong, but keep existing name/image
+        if (byId.set_code !== 'PFLpt') {
+          await supabase.from('cards').update({ set_code: 'PFLpt' }).eq('id', canonicalId)
+        }
+      } else {
+        // Insert new card — only if imageUrl is non-empty, otherwise leave blank to preserve future updates
+        const { data: inserted, error: ie } = await supabase
+          .from('cards')
+          .insert({
+            id: canonicalId,
+            name,
+            number,
+            set_code: 'PFLpt',
+            nationality: 'PT-BR',
+            rarity: rarity || null,
+            image_url: imageUrl || '',
+          })
+          .select()
+          .single()
+        if (ie) return res.status(500).json({ error: ie.message })
+        card = inserted
+      }
+    } else {
+      // Card found — update only fields that were empty/missing, never overwrite good data with empty
+      const updates = {}
+      if (!card.image_url && imageUrl) updates.image_url = imageUrl
+      if (!card.rarity && rarity) updates.rarity = rarity
+      if (card.set_code !== 'PFLpt') updates.set_code = 'PFLpt'
+      if (Object.keys(updates).length > 0) {
+        await supabase.from('cards').update(updates).eq('id', card.id)
+      }
     }
 
     // Upsert collection

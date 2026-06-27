@@ -22,6 +22,15 @@ export default async function handler(req, res) {
 
   if (cole) return res.status(500).json({ error: cole.message })
 
+  // Include any collection cards not already in the PFLpt cards list
+  const cardIds = new Set(cards.map(c => c.id))
+  for (const item of (collection || [])) {
+    if (item.cards && !cardIds.has(item.cards.id)) {
+      cards.push(item.cards)
+      cardIds.add(item.cards.id)
+    }
+  }
+
   const { data: prices } = await supabase
     .from('price_history')
     .select('card_id, price_brl, source, date_recorded')

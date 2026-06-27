@@ -59,12 +59,29 @@ export default function Camera() {
     const canvas = canvasRef.current
     if (!video || !canvas) return
 
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
-    canvas.getContext('2d').drawImage(video, 0, 0)
+    const w = video.videoWidth
+    const h = video.videoHeight
 
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.9)
+    if (!w || !h) {
+      setErrorMsg('A câmera ainda está carregando. Aguarde um instante e tente novamente.')
+      setState(S.ERROR)
+      return
+    }
+
+    canvas.width = w
+    canvas.height = h
+    canvas.getContext('2d').drawImage(video, 0, 0, w, h)
+
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
     const base64 = dataUrl.split(',')[1]
+
+    // Sanity check: if base64 is too short, capture failed
+    if (!base64 || base64.length < 1000) {
+      setErrorMsg('Não consegui capturar a imagem. Verifique a iluminação e tente novamente.')
+      setState(S.ERROR)
+      return
+    }
+
     stopCamera()
     setCapturedImage(dataUrl)
     setState(S.PROCESSING)
