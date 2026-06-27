@@ -24,7 +24,6 @@ export default function Camera() {
   const [toast, setToast] = useState(null)
   const [camState, setCamState] = useState('idle') // idle | starting | active | error
 
-  // Parar câmera ao sair do PREVIEW
   useEffect(() => {
     if (state !== S.PREVIEW) stopCamera()
   }, [state])
@@ -38,13 +37,22 @@ export default function Camera() {
         audio: false,
       })
       streamRef.current = stream
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-        await new Promise(resolve => {
-          videoRef.current.onloadedmetadata = resolve
-        })
-        await videoRef.current.play()
-      }
+
+      const video = videoRef.current
+      if (!video) throw new Error('video element not mounted')
+
+      video.srcObject = stream
+
+      // readyState >= 1 means metadata already loaded (race condition safe)
+      await new Promise(resolve => {
+        if (video.readyState >= 1) {
+          resolve()
+        } else {
+          video.onloadedmetadata = resolve
+        }
+      })
+
+      await video.play()
       setCamState('active')
     } catch (e) {
       console.warn('Camera error:', e)
@@ -55,6 +63,7 @@ export default function Camera() {
   function stopCamera() {
     streamRef.current?.getTracks().forEach(t => t.stop())
     streamRef.current = null
+    if (videoRef.current) videoRef.current.srcObject = null
   }
 
   const captureFrame = useCallback(() => {
@@ -78,7 +87,6 @@ export default function Camera() {
     const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
     const base64 = dataUrl.split(',')[1]
 
-    // Sanity check: if base64 is too short, capture failed
     if (!base64 || base64.length < 1000) {
       setErrorMsg('Não consegui capturar a imagem. Verifique a iluminação e tente novamente.')
       setState(S.ERROR)
@@ -154,11 +162,28 @@ export default function Camera() {
     setSaving(false)
   }
 
+  const showVideo = state === S.PREVIEW && camState === 'active'
+
   return (
     <div className="relative flex flex-col h-full bg-black overflow-hidden">
 
       {/* Canvas oculto para captura */}
       <canvas ref={canvasRef} className="hidden" />
+
+      {/*
+        Vídeo SEMPRE no DOM enquanto em PREVIEW para que videoRef.current
+        não seja null quando startCamera() tentar anexar o srcObject.
+        É ocultado com 'hidden' quando não ativo (display:none preserva a ref).
+      */}
+      {state === S.PREVIEW && (
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className={showVideo ? 'absolute inset-0 w-full h-full object-cover' : 'hidden'}
+        />
+      )}
 
       {/* Toast de sucesso */}
       {toast && (
@@ -182,7 +207,6 @@ export default function Camera() {
       {state === S.PREVIEW && (
         <div className="flex flex-col flex-1">
 
-          {/* Tela inicial: pedir para ativar câmera */}
           {camState === 'idle' && (
             <div className="flex flex-col flex-1 items-center justify-center gap-8 px-8">
               <div className="w-24 h-24 rounded-full bg-red-600/20 flex items-center justify-center">
@@ -203,14 +227,12 @@ export default function Camera() {
             </div>
           )}
 
-          {/* Iniciando câmera */}
           {camState === 'starting' && (
             <div className="flex flex-col flex-1 items-center justify-center gap-4">
               <PokeballLoader size={48} text="Ativando câmera..." />
             </div>
           )}
 
-          {/* Erro de câmera */}
           {camState === 'error' && (
             <div className="flex flex-col flex-1 items-center justify-center gap-4 px-8 text-center">
               <p className="text-gray-400 text-sm">Câmera não disponível. Verifique as permissões no browser e tente novamente.</p>
@@ -220,33 +242,24 @@ export default function Camera() {
             </div>
           )}
 
-          {/* Feed ativo */}
+          {/* Overlay sobre o vídeo (moldura + botão captura) */}
           {camState === 'active' && (
             <>
-              <div className="relative flex-1 bg-black">
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className="w-full h-full object-cover"
-                />
-                {/* Moldura guia */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="relative w-56 h-80">
-                    <div className="absolute top-0 left-0 w-8 h-8 border-red-500" style={{borderTopWidth:3,borderLeftWidth:3,borderRadius:'4px 0 0 0'}} />
-                    <div className="absolute top-0 right-0 w-8 h-8 border-red-500" style={{borderTopWidth:3,borderRightWidth:3,borderRadius:'0 4px 0 0'}} />
-                    <div className="absolute bottom-0 left-0 w-8 h-8 border-red-500" style={{borderBottomWidth:3,borderLeftWidth:3,borderRadius:'0 0 0 4px'}} />
-                    <div className="absolute bottom-0 right-0 w-8 h-8 border-red-500" style={{borderBottomWidth:3,borderRightWidth:3,borderRadius:'0 0 4px 0'}} />
-                  </div>
+              {/* Moldura guia — absolute sobre o vídeo */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                <div className="relative w-56 h-80">
+                  <div className="absolute top-0 left-0 w-8 h-8 border-red-500" style={{borderTopWidth:3,borderLeftWidth:3,borderRadius:'4px 0 0 0'}} />
+                  <div className="absolute top-0 right-0 w-8 h-8 border-red-500" style={{borderTopWidth:3,borderRightWidth:3,borderRadius:'0 4px 0 0'}} />
+                  <div className="absolute bottom-0 left-0 w-8 h-8 border-red-500" style={{borderBottomWidth:3,borderLeftWidth:3,borderRadius:'0 0 0 4px'}} />
+                  <div className="absolute bottom-0 right-0 w-8 h-8 border-red-500" style={{borderBottomWidth:3,borderRightWidth:3,borderRadius:'0 0 4px 0'}} />
                 </div>
-                <p className="absolute bottom-4 left-0 right-0 text-center text-white/70 text-sm">
-                  Centralize a carta na moldura
-                </p>
               </div>
+              <p className="absolute bottom-28 left-0 right-0 text-center text-white/70 text-sm z-10 pointer-events-none">
+                Centralize a carta na moldura
+              </p>
 
-              {/* Botão captura */}
-              <div className="flex items-center justify-center bg-black py-6 safe-bottom">
+              {/* Botão captura na parte de baixo */}
+              <div className="absolute bottom-0 left-0 right-0 flex items-center justify-center bg-black/60 py-6 safe-bottom z-10">
                 <button
                   onClick={captureFrame}
                   className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center active:scale-90 transition-transform"
