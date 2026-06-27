@@ -4,7 +4,7 @@ import CardTile from '../components/CardTile'
 import PokeballLoader from '../components/PokeballLoader'
 
 const FILTERS = ['Todas', 'Possuídas', 'Não possuídas', 'Comum', 'Incomum', 'Rara', 'Ultra Rara']
-const TOTAL = 94
+const TOTAL = 130
 
 export default function Pokedex() {
   const [cards, setCards] = useState([])

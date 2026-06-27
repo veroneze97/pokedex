@@ -5,7 +5,7 @@ import { fetchPrice } from '../services/pricing'
 import { brl, formatDate } from '../utils/format'
 import PokeballLoader from '../components/PokeballLoader'
 
-const TOTAL_CARDS = 94
+const TOTAL_CARDS = 130
 
 export default function Dashboard() {
   const navigate = useNavigate()

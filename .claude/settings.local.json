@@ -28,7 +28,10 @@
       "mcp__3a4e05bd-c143-4349-8e80-329e28dfe148__get_runtime_logs",
       "Bash(git commit -m 'fix: corrigir handleConfirm — usar maybeSingle e propagar erro real *)",
       "Bash(git commit -m 'fix: substituir scraping bloqueado por ML API + TCG API para preços *)",
-      "Bash(git commit -m 'fix: mover operações DB para servidor usando service role key *)"
+      "Bash(git commit -m 'fix: mover operações DB para servidor usando service role key *)",
+      "Bash(git commit -m 'fix: reescrever busca de preços via TCG API com timeout maior *)",
+      "Bash(git commit -m 'feat: fluxo câmera contínuo estilo Collectr — toast e volta automática *)",
+      "Bash(git commit -m 'feat: câmera ao vivo com getUserMedia + 130 cartas no total *)"
     ]
   }
 }

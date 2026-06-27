@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from 'react'
+import React, { useRef, useState, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { identifyCard } from '../services/vision'
 import { searchCard } from '../services/tcgApi'
@@ -11,7 +11,9 @@ const S = { PREVIEW: 'preview', PROCESSING: 'processing', CONFIRM: 'confirm', ER
 
 export default function Camera() {
   const navigate = useNavigate()
-  const fileRef = useRef(null)
+  const videoRef = useRef(null)
+  const canvasRef = useRef(null)
+  const streamRef = useRef(null)
   const [state, setState] = useState(S.PREVIEW)
   const [capturedImage, setCapturedImage] = useState(null)
   const [identified, setIdentified] = useState(null)
@@ -19,30 +21,54 @@ export default function Camera() {
   const [price, setPrice] = useState(null)
   const [errorMsg, setErrorMsg] = useState('')
   const [saving, setSaving] = useState(false)
-  const [toast, setToast] = useState(null) // { name } shown briefly over the viewfinder
+  const [toast, setToast] = useState(null)
+  const [camError, setCamError] = useState(false)
 
-  const reset = useCallback(() => {
-    setState(S.PREVIEW)
-    setCapturedImage(null)
-    setIdentified(null)
-    setTcgCard(null)
-    setPrice(null)
-    setErrorMsg('')
-    setSaving(false)
-    if (fileRef.current) fileRef.current.value = ''
-  }, [])
+  // Iniciar câmera ao vivo
+  useEffect(() => {
+    if (state !== S.PREVIEW) return
+    startCamera()
+    return () => stopCamera()
+  }, [state])
 
-  const handleCapture = useCallback((e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = async (ev) => {
-      const base64 = ev.target.result.split(',')[1]
-      setCapturedImage(ev.target.result)
-      setState(S.PROCESSING)
-      await processImage(base64)
+  async function startCamera() {
+    setCamError(false)
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+        audio: false,
+      })
+      streamRef.current = stream
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        await videoRef.current.play()
+      }
+    } catch (e) {
+      console.warn('Camera error:', e)
+      setCamError(true)
     }
-    reader.readAsDataURL(file)
+  }
+
+  function stopCamera() {
+    streamRef.current?.getTracks().forEach(t => t.stop())
+    streamRef.current = null
+  }
+
+  const captureFrame = useCallback(() => {
+    const video = videoRef.current
+    const canvas = canvasRef.current
+    if (!video || !canvas) return
+
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    canvas.getContext('2d').drawImage(video, 0, 0)
+
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.9)
+    const base64 = dataUrl.split(',')[1]
+    stopCamera()
+    setCapturedImage(dataUrl)
+    setState(S.PROCESSING)
+    processImage(base64)
   }, [])
 
   async function processImage(base64) {
@@ -55,14 +81,14 @@ export default function Camera() {
         return
       }
 
-      const [tcg, priceData] = await Promise.allSettled([
+      const [tcg, priceRes] = await Promise.allSettled([
         searchCard(result.number, result.setCode),
         fetchPrice(result.name, result.setCode),
       ])
 
       setIdentified(result)
       setTcgCard(tcg.status === 'fulfilled' ? tcg.value : null)
-      setPrice(priceData.status === 'fulfilled' ? priceData.value : null)
+      setPrice(priceRes.status === 'fulfilled' ? priceRes.value : null)
       setState(S.CONFIRM)
     } catch (e) {
       setErrorMsg('Não consegui identificar essa carta. Tente novamente com melhor iluminação e a carta centralizada na moldura.')
@@ -86,7 +112,6 @@ export default function Camera() {
         savePriceApi(result.cardId, price.price, price.source).catch(() => {})
       }
 
-      // Mostrar toast e voltar pra câmera automaticamente
       const cardName = identified.name
       reset()
       setToast({ name: cardName })
@@ -98,15 +123,25 @@ export default function Camera() {
     }
   }
 
-  // ── VIEWFINDER (tela da câmera) ───────────────────────────────────────────
-  const showViewfinder = state === S.PREVIEW
+  function reset() {
+    setState(S.PREVIEW)
+    setCapturedImage(null)
+    setIdentified(null)
+    setTcgCard(null)
+    setPrice(null)
+    setErrorMsg('')
+    setSaving(false)
+  }
 
   return (
-    <div className="relative flex flex-col items-center justify-center h-full bg-black">
+    <div className="relative flex flex-col h-full bg-black overflow-hidden">
 
-      {/* Toast de sucesso flutuante */}
+      {/* Canvas oculto para captura */}
+      <canvas ref={canvasRef} className="hidden" />
+
+      {/* Toast de sucesso */}
       {toast && (
-        <div className="absolute top-16 left-4 right-4 z-50 flex items-center gap-3 bg-green-600/90 backdrop-blur-sm text-white px-4 py-3 rounded-2xl shadow-xl animate-[pop_0.3s_ease-out]">
+        <div className="absolute top-16 left-4 right-4 z-50 flex items-center gap-3 bg-green-600/95 text-white px-4 py-3 rounded-2xl shadow-xl card-pop">
           <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 flex-shrink-0">
             <path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
           </svg>
@@ -118,48 +153,70 @@ export default function Camera() {
       )}
 
       {/* Botão voltar */}
-      <button
-        onClick={() => navigate('/')}
-        className="absolute top-12 left-4 z-10 text-white bg-black/50 p-2 rounded-full"
-      >
-        <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
-          <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
-        </svg>
+      <button onClick={() => { stopCamera(); navigate('/') }} className="absolute top-12 left-4 z-20 text-white bg-black/50 p-2 rounded-full">
+        <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" /></svg>
       </button>
 
-      {/* ── PREVIEW / câmera ── */}
-      {showViewfinder && (
-        <>
-          <div className="relative w-72 h-96 border-2 border-white/30 rounded-2xl overflow-hidden flex items-center justify-center">
-            <div className="text-center px-6">
-              <svg viewBox="0 0 24 24" fill="currentColor" className="w-16 h-16 mx-auto mb-3 text-gray-700">
-                <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.5-10h-3.18L14 4h-4L7.68 5.5H4.5A2.5 2.5 0 0 0 2 8v11a2.5 2.5 0 0 0 2.5 2.5h15A2.5 2.5 0 0 0 22 19V8a2.5 2.5 0 0 0-2.5-2.5z" />
-              </svg>
-              <p className="text-sm text-gray-500">Posicione a carta dentro da moldura</p>
+      {/* ── CÂMERA AO VIVO ── */}
+      {state === S.PREVIEW && (
+        <div className="flex flex-col flex-1">
+          {/* Feed de vídeo */}
+          <div className="relative flex-1 bg-black">
+            {!camError ? (
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-500 text-sm px-8 text-center">
+                Câmera não disponível. Verifique as permissões do browser.
+              </div>
+            )}
+
+            {/* Moldura guia */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="relative w-56 h-80">
+                {/* Cantos vermelhos */}
+                <div className="absolute top-0 left-0 w-8 h-8 border-t-3 border-l-3 border-red-500 rounded-tl-lg" style={{borderWidth: 3}} />
+                <div className="absolute top-0 right-0 w-8 h-8 border-t-3 border-r-3 border-red-500 rounded-tr-lg" style={{borderWidth: 3}} />
+                <div className="absolute bottom-0 left-0 w-8 h-8 border-b-3 border-l-3 border-red-500 rounded-bl-lg" style={{borderWidth: 3}} />
+                <div className="absolute bottom-0 right-0 w-8 h-8 border-b-3 border-r-3 border-red-500 rounded-br-lg" style={{borderWidth: 3}} />
+              </div>
             </div>
-            {['top-2 left-2 border-t-2 border-l-2', 'top-2 right-2 border-t-2 border-r-2', 'bottom-2 left-2 border-b-2 border-l-2', 'bottom-2 right-2 border-b-2 border-r-2'].map((cls, i) => (
-              <div key={i} className={`absolute ${cls} border-red-500 w-6 h-6 rounded-sm`} />
-            ))}
+
+            {/* Label */}
+            <p className="absolute bottom-4 left-0 right-0 text-center text-white/70 text-sm">
+              Centralize a carta na moldura
+            </p>
           </div>
-          <p className="text-gray-400 text-sm mt-6 mb-8">Centralise a carta e tire a foto</p>
-          <label className="w-20 h-20 bg-white rounded-full flex items-center justify-center cursor-pointer shadow-xl active:scale-95 transition-transform">
-            <div className="w-16 h-16 bg-white rounded-full border-4 border-gray-300" />
-            <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleCapture} />
-          </label>
-        </>
+
+          {/* Botão de captura */}
+          <div className="flex items-center justify-center bg-black py-6 safe-bottom">
+            <button
+              onClick={captureFrame}
+              disabled={camError}
+              className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center active:scale-90 transition-transform disabled:opacity-40"
+            >
+              <div className="w-14 h-14 rounded-full bg-white" />
+            </button>
+          </div>
+        </div>
       )}
 
-      {/* ── PROCESSING ── */}
+      {/* ── PROCESSANDO ── */}
       {state === S.PROCESSING && (
-        <div className="flex flex-col items-center gap-6">
-          {capturedImage && <img src={capturedImage} alt="" className="w-48 rounded-xl opacity-30" />}
+        <div className="flex flex-col flex-1 items-center justify-center gap-6">
+          {capturedImage && <img src={capturedImage} alt="" className="w-48 rounded-xl opacity-40" />}
           <PokeballLoader size={64} text="Identificando carta..." />
         </div>
       )}
 
-      {/* ── CONFIRM ── */}
+      {/* ── CONFIRMAR ── */}
       {state === S.CONFIRM && (
-        <div className="flex flex-col w-full h-full bg-[#1a1a1a]">
+        <div className="flex flex-col flex-1 bg-[#1a1a1a]">
           <div className="safe-top px-4 pt-14 pb-2 flex items-center justify-between">
             <button onClick={reset} className="text-gray-400 text-sm flex items-center gap-1">
               <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" /></svg>
@@ -176,7 +233,6 @@ export default function Camera() {
                 className="w-48 rounded-2xl shadow-2xl"
               />
             </div>
-
             <div className="bg-[#2a2a2a] rounded-xl p-4 space-y-2.5">
               <Row label="Nome" value={identified?.name} bold />
               <Row label="Número" value={identified?.number} />
@@ -192,22 +248,15 @@ export default function Camera() {
               disabled={saving}
               className="w-full py-4 rounded-2xl bg-red-600 text-white font-bold text-base active:bg-red-700 disabled:opacity-60 flex items-center justify-center gap-2"
             >
-              {saving ? (
-                <>
-                  <PokeballLoader size={20} />
-                  Salvando...
-                </>
-              ) : (
-                '✓ Adicionar à Coleção'
-              )}
+              {saving ? <><PokeballLoader size={20} /> Salvando...</> : '✓  Adicionar à Coleção'}
             </button>
           </div>
         </div>
       )}
 
-      {/* ── ERROR ── */}
+      {/* ── ERRO ── */}
       {state === S.ERROR && (
-        <div className="flex flex-col items-center gap-6 px-6 text-center">
+        <div className="flex flex-col flex-1 items-center justify-center gap-6 px-6 text-center">
           <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center">
             <svg viewBox="0 0 24 24" fill="currentColor" className="w-10 h-10 text-red-400">
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
