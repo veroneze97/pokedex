@@ -1,0 +1,53 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+@theme {
+  --color-pokered: #CC0000;
+  --color-pokered-dark: #990000;
+  --color-pokered-light: #FF3333;
+  --color-pokegray: #2a2a2a;
+  --color-pokegray-light: #3d3d3d;
+  --font-sans: 'Inter', system-ui, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, #root {
+  height: 100%;
+  background: #1a1a1a;
+  color: #fff;
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pop { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes fly-up {
+  0% { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(-120px) scale(0.3); opacity: 0; }
+}
+@keyframes pulse-red {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(204,0,0,0.4); }
+  50% { box-shadow: 0 0 0 12px rgba(204,0,0,0); }
+}
+
+.pokeball-spin { animation: spin 1s linear infinite; }
+.card-pop { animation: pop 0.3s ease-out; }
+.card-fly { animation: fly-up 0.5s ease-in forwards; }
+.btn-pulse { animation: pulse-red 2s infinite; }
+
+.silhouette {
+  filter: brightness(0) saturate(100%) invert(15%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(30%) contrast(90%);
+}
+
+.safe-bottom { padding-bottom: max(env(safe-area-inset-bottom), 16px); }
+.safe-top { padding-top: env(safe-area-inset-top, 0px); }
+
+.progress-bar {
+  background: linear-gradient(90deg, #CC0000 0%, #FF3333 100%);
+  transition: width 0.6s ease;
+}
+
+.scroll-hide::-webkit-scrollbar { display: none; }
+.scroll-hide { -ms-overflow-style: none; scrollbar-width: none; }
