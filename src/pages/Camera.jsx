@@ -22,18 +22,17 @@ export default function Camera() {
   const [errorMsg, setErrorMsg] = useState('')
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState(null)
-  const [camError, setCamError] = useState(false)
+  const [camState, setCamState] = useState('idle') // idle | starting | active | error
 
-  // Iniciar câmera ao vivo
+  // Parar câmera ao sair do PREVIEW
   useEffect(() => {
-    if (state !== S.PREVIEW) return
-    startCamera()
-    return () => stopCamera()
+    if (state !== S.PREVIEW) stopCamera()
   }, [state])
 
   async function startCamera() {
-    setCamError(false)
+    setCamState('starting')
     try {
+      if (!navigator.mediaDevices?.getUserMedia) throw new Error('not supported')
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
         audio: false,
@@ -43,9 +42,10 @@ export default function Camera() {
         videoRef.current.srcObject = stream
         await videoRef.current.play()
       }
+      setCamState('active')
     } catch (e) {
       console.warn('Camera error:', e)
-      setCamError(true)
+      setCamState('error')
     }
   }
 
@@ -125,6 +125,7 @@ export default function Camera() {
 
   function reset() {
     setState(S.PREVIEW)
+    setCamState('idle')
     setCapturedImage(null)
     setIdentified(null)
     setTcgCard(null)
@@ -160,49 +161,81 @@ export default function Camera() {
       {/* ── CÂMERA AO VIVO ── */}
       {state === S.PREVIEW && (
         <div className="flex flex-col flex-1">
-          {/* Feed de vídeo */}
-          <div className="relative flex-1 bg-black">
-            {!camError ? (
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full text-gray-500 text-sm px-8 text-center">
-                Câmera não disponível. Verifique as permissões do browser.
-              </div>
-            )}
 
-            {/* Moldura guia */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="relative w-56 h-80">
-                {/* Cantos vermelhos */}
-                <div className="absolute top-0 left-0 w-8 h-8 border-t-3 border-l-3 border-red-500 rounded-tl-lg" style={{borderWidth: 3}} />
-                <div className="absolute top-0 right-0 w-8 h-8 border-t-3 border-r-3 border-red-500 rounded-tr-lg" style={{borderWidth: 3}} />
-                <div className="absolute bottom-0 left-0 w-8 h-8 border-b-3 border-l-3 border-red-500 rounded-bl-lg" style={{borderWidth: 3}} />
-                <div className="absolute bottom-0 right-0 w-8 h-8 border-b-3 border-r-3 border-red-500 rounded-br-lg" style={{borderWidth: 3}} />
+          {/* Tela inicial: pedir para ativar câmera */}
+          {camState === 'idle' && (
+            <div className="flex flex-col flex-1 items-center justify-center gap-8 px-8">
+              <div className="w-24 h-24 rounded-full bg-red-600/20 flex items-center justify-center">
+                <svg viewBox="0 0 24 24" fill="currentColor" className="w-12 h-12 text-red-500">
+                  <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.5-10h-3.18L14 4h-4L7.68 5.5H4.5A2.5 2.5 0 0 0 2 8v11a2.5 2.5 0 0 0 2.5 2.5h15A2.5 2.5 0 0 0 22 19V8a2.5 2.5 0 0 0-2.5-2.5z" />
+                </svg>
               </div>
+              <div className="text-center">
+                <p className="text-white font-semibold text-lg mb-2">Câmera</p>
+                <p className="text-gray-400 text-sm">Toque no botão para ativar a câmera e fotografar sua carta</p>
+              </div>
+              <button
+                onClick={startCamera}
+                className="bg-red-600 text-white font-bold px-8 py-4 rounded-2xl text-base active:bg-red-700 w-full"
+              >
+                Ativar Câmera
+              </button>
             </div>
+          )}
 
-            {/* Label */}
-            <p className="absolute bottom-4 left-0 right-0 text-center text-white/70 text-sm">
-              Centralize a carta na moldura
-            </p>
-          </div>
+          {/* Iniciando câmera */}
+          {camState === 'starting' && (
+            <div className="flex flex-col flex-1 items-center justify-center gap-4">
+              <PokeballLoader size={48} text="Ativando câmera..." />
+            </div>
+          )}
 
-          {/* Botão de captura */}
-          <div className="flex items-center justify-center bg-black py-6 safe-bottom">
-            <button
-              onClick={captureFrame}
-              disabled={camError}
-              className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center active:scale-90 transition-transform disabled:opacity-40"
-            >
-              <div className="w-14 h-14 rounded-full bg-white" />
-            </button>
-          </div>
+          {/* Erro de câmera */}
+          {camState === 'error' && (
+            <div className="flex flex-col flex-1 items-center justify-center gap-4 px-8 text-center">
+              <p className="text-gray-400 text-sm">Câmera não disponível. Verifique as permissões no browser e tente novamente.</p>
+              <button onClick={startCamera} className="bg-red-600 text-white px-6 py-3 rounded-xl text-sm font-semibold">
+                Tentar novamente
+              </button>
+            </div>
+          )}
+
+          {/* Feed ativo */}
+          {camState === 'active' && (
+            <>
+              <div className="relative flex-1 bg-black">
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-cover"
+                />
+                {/* Moldura guia */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="relative w-56 h-80">
+                    <div className="absolute top-0 left-0 w-8 h-8 border-red-500" style={{borderTopWidth:3,borderLeftWidth:3,borderRadius:'4px 0 0 0'}} />
+                    <div className="absolute top-0 right-0 w-8 h-8 border-red-500" style={{borderTopWidth:3,borderRightWidth:3,borderRadius:'0 4px 0 0'}} />
+                    <div className="absolute bottom-0 left-0 w-8 h-8 border-red-500" style={{borderBottomWidth:3,borderLeftWidth:3,borderRadius:'0 0 0 4px'}} />
+                    <div className="absolute bottom-0 right-0 w-8 h-8 border-red-500" style={{borderBottomWidth:3,borderRightWidth:3,borderRadius:'0 0 4px 0'}} />
+                  </div>
+                </div>
+                <p className="absolute bottom-4 left-0 right-0 text-center text-white/70 text-sm">
+                  Centralize a carta na moldura
+                </p>
+              </div>
+
+              {/* Botão captura */}
+              <div className="flex items-center justify-center bg-black py-6 safe-bottom">
+                <button
+                  onClick={captureFrame}
+                  className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center active:scale-90 transition-transform"
+                >
+                  <div className="w-14 h-14 rounded-full bg-white" />
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
 
