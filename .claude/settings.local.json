@@ -10,7 +10,8 @@
       "Bash(git init *)",
       "Bash(git add *)",
       "Bash(git rm *)",
-      "Bash(git commit -m 'feat: PokéDex PT-BR — scaffold inicial completo *)"
+      "Bash(git commit -m 'feat: PokéDex PT-BR — scaffold inicial completo *)",
+      "Bash(git commit -m 'fix: remover node_modules do tracking *)"
     ]
   }
 }
