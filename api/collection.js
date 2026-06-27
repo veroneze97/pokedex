@@ -19,6 +19,9 @@ export default async function handler(req, res) {
   if (method === 'POST') {
     const { number, setCode, name, rarity, imageUrl } = req.body
 
+    // Determine canonical ID prefix by setCode
+    const idPrefix = setCode === 'ME1pt' ? 'me1' : 'pfl'
+
     // Find card
     let { data: card } = await supabase
       .from('cards')
@@ -29,7 +32,7 @@ export default async function handler(req, res) {
 
     if (!card) {
       // Try to find by canonical ID regardless of set_code (handles set_code mismatches)
-      const canonicalId = `pfl-${number}`
+      const canonicalId = `${idPrefix}-${number}`
       const { data: byId } = await supabase
         .from('cards')
         .select('*')
@@ -39,8 +42,8 @@ export default async function handler(req, res) {
       if (byId) {
         card = byId
         // Update set_code to canonical if wrong, but keep existing name/image
-        if (byId.set_code !== 'PFLpt') {
-          await supabase.from('cards').update({ set_code: 'PFLpt' }).eq('id', canonicalId)
+        if (byId.set_code !== setCode) {
+          await supabase.from('cards').update({ set_code: setCode }).eq('id', canonicalId)
         }
       } else {
         // Insert new card — only if imageUrl is non-empty, otherwise leave blank to preserve future updates
@@ -50,7 +53,7 @@ export default async function handler(req, res) {
             id: canonicalId,
             name,
             number,
-            set_code: 'PFLpt',
+            set_code: setCode,
             nationality: 'PT-BR',
             rarity: rarity || null,
             image_url: imageUrl || '',

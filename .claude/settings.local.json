@@ -32,7 +32,12 @@
       "Bash(git commit -m 'fix: reescrever busca de preços via TCG API com timeout maior *)",
       "Bash(git commit -m 'feat: fluxo câmera contínuo estilo Collectr — toast e volta automática *)",
       "Bash(git commit -m 'feat: câmera ao vivo com getUserMedia + 130 cartas no total *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "mcp__f3241ab2-ab5b-4ce1-89c7-ce37718ad94c__execute_sql",
+      "Bash(curl -s https://pokedex-ptbr.vercel.app/api/cards)",
+      "Bash(python3 -c ' *)",
+      "Bash(curl -s \"https://api.pokemontcg.io/v2/cards?q=set.id:me2&pageSize=200&orderBy=number\")",
+      "Bash(curl -s \"https://api.pokemontcg.io/v2/cards?q=set.id:me1&pageSize=200&orderBy=number\")"
     ]
   }
 }

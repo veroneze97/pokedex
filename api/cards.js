@@ -11,7 +11,7 @@ export default async function handler(req, res) {
   const { data: cards, error: ce } = await supabase
     .from('cards')
     .select('*')
-    .eq('set_code', 'PFLpt')
+    .in('set_code', ['PFLpt', 'ME1pt'])
     .order('number')
 
   if (ce) return res.status(500).json({ error: ce.message })

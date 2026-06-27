@@ -40,6 +40,9 @@ export default function Camera() {
       streamRef.current = stream
       if (videoRef.current) {
         videoRef.current.srcObject = stream
+        await new Promise(resolve => {
+          videoRef.current.onloadedmetadata = resolve
+        })
         await videoRef.current.play()
       }
       setCamState('active')
