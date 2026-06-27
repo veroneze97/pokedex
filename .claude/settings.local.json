@@ -31,7 +31,8 @@
       "Bash(git commit -m 'fix: mover operações DB para servidor usando service role key *)",
       "Bash(git commit -m 'fix: reescrever busca de preços via TCG API com timeout maior *)",
       "Bash(git commit -m 'feat: fluxo câmera contínuo estilo Collectr — toast e volta automática *)",
-      "Bash(git commit -m 'feat: câmera ao vivo com getUserMedia + 130 cartas no total *)"
+      "Bash(git commit -m 'feat: câmera ao vivo com getUserMedia + 130 cartas no total *)",
+      "Bash(git commit *)"
     ]
   }
 }
