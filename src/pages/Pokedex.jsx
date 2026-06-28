@@ -8,6 +8,7 @@ const TOTAL = 130
 export default function Pokedex() {
   const [cards, setCards]           = useState([])
   const [collection, setCollection] = useState({})
+  const [prices, setPrices]         = useState({})
   const [filter, setFilter]         = useState('Todas')
   const [loading, setLoading]       = useState(true)
 
@@ -15,11 +16,12 @@ export default function Pokedex() {
 
   async function loadAll() {
     try {
-      const { cards: allCards, collection: col } = await fetchAllData()
+      const { cards: allCards, collection: col, prices: priceMap } = await fetchAllData()
       setCards(allCards || [])
       const map = {}
       for (const item of (col || [])) map[item.card_id] = item
       setCollection(map)
+      setPrices(priceMap || {})
     } catch (e) {
       console.error(e)
     } finally {
@@ -47,10 +49,10 @@ export default function Pokedex() {
   }
 
   return (
-    <div className="min-h-full bg-[#0A0A0C] pb-28">
+    <div className="min-h-full bg-[#0A0A0C] pb-32">
 
       {/* Header */}
-      <div className="safe-top flex items-center justify-between px-4 pt-4 pb-3">
+      <div className="safe-top flex items-center justify-between px-5 pt-5 pb-4">
         <div>
           <p className="text-[#8E8E93] text-[10px] font-medium uppercase tracking-widest mb-0.5">Coleção</p>
           <h1 className="text-[#F4F4F6] text-[17px] font-bold tracking-tight">Minha Coleção</h1>
@@ -65,15 +67,15 @@ export default function Pokedex() {
         </button>
       </div>
 
-      <div className="px-4 space-y-4">
+      <div className="px-5 space-y-5">
 
         {/* Progress block */}
-        <div className="bg-[#16161A] border border-[#24242A] rounded-xl p-4">
-          <div className="flex items-baseline gap-2 mb-1">
-            <span className="text-[#F4F4F6] font-bold text-3xl tabular-nums">{owned}</span>
-            <span className="text-[#8E8E93] font-semibold text-xl">/ {cards.length || TOTAL}</span>
+        <div className="bg-[#16161A] border border-[#24242A] rounded-xl p-5">
+          <div className="flex items-baseline gap-2 mb-2">
+            <span className="text-[#F4F4F6] font-bold text-4xl tabular-nums">{owned}</span>
+            <span className="text-[#8E8E93] font-semibold text-2xl">/ {cards.length || TOTAL}</span>
           </div>
-          <p className="text-[#00E676] text-sm font-semibold mb-3">{progress.toFixed(0)}% completo</p>
+          <p className="text-[#00E676] text-sm font-semibold mb-4">{progress.toFixed(0)}% completo</p>
           <div className="bg-[#24242A] rounded-full h-[3px]">
             <div
               className="progress-bar h-[3px] rounded-full"
@@ -92,12 +94,12 @@ export default function Pokedex() {
             <button
               key={key}
               onClick={() => setFilter(key)}
-              className={`flex-1 py-2.5 rounded-xl text-[13px] font-semibold border transition-colors ${
+              className={`flex-1 rounded-xl text-[13px] font-semibold border transition-colors ${
                 filter === key
                   ? 'bg-[#16161A] border-[#F4F4F6]/20 text-[#F4F4F6]'
                   : 'bg-transparent border-[#24242A] text-[#8E8E93]'
               }`}
-              style={{ minHeight: 44 }}
+              style={{ minHeight: 52 }}
             >
               {label}
             </button>
@@ -114,14 +116,16 @@ export default function Pokedex() {
           </span>
         </div>
 
-        {/* Card grid */}
-        <div className="grid grid-cols-4 gap-2">
-          {filtered.map(card => (
+        {/* Card grid — 2 columns */}
+        <div className="grid grid-cols-2 gap-4">
+          {filtered.map((card, index) => (
             <CardTile
               key={card.id}
               card={card}
               owned={!!collection[card.id]}
               quantity={collection[card.id]?.quantity}
+              price={prices[card.id]?.price_brl}
+              index={index}
             />
           ))}
         </div>

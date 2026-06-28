@@ -7,6 +7,26 @@ import PokeballLoader from '../components/PokeballLoader'
 
 const TOTAL_CARDS = 130
 
+function useCountUp(target, duration = 1200) {
+  const [value, setValue] = useState(0)
+  useEffect(() => {
+    if (!target) { setValue(0); return }
+    const start = Date.now()
+    let raf
+    function tick() {
+      const elapsed = Date.now() - start
+      const t = Math.min(elapsed / duration, 1)
+      const eased = 1 - Math.pow(1 - t, 3)
+      setValue(target * eased)
+      if (t < 1) raf = requestAnimationFrame(tick)
+      else setValue(target)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [target])
+  return value
+}
+
 export default function Dashboard() {
   const navigate = useNavigate()
   const [collection, setCollection]       = useState([])
@@ -92,13 +112,12 @@ export default function Dashboard() {
 
   const uniqueOwned = new Set(collection.map(c => c.card_id)).size
   const progress    = (uniqueOwned / TOTAL_CARDS) * 100
-  const avgValue    = uniqueOwned > 0 ? totalValue / uniqueOwned : 0
-  const semPreco    = collection.filter(c => !prices[c.card_id]?.price_brl).length
 
-  // Sparkline from sorted price-update timestamps
   const sparkData = Object.values(prices)
     .sort((a, b) => new Date(a.date_recorded) - new Date(b.date_recorded))
     .map(p => p.price_brl)
+
+  const animatedValue = useCountUp(totalValue)
 
   // ── Loading ───────────────────────────────────────────────────────────────
   if (loading) {
@@ -110,10 +129,10 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-full bg-[#0A0A0C] pb-28">
+    <div className="min-h-full bg-[#0A0A0C] pb-32">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="safe-top flex items-center justify-between px-5 pt-3 pb-4">
+      <div className="safe-top flex items-center justify-between px-5 pt-4 pb-5">
         <div>
           <p className="text-[#8E8E93] text-[10px] font-medium tracking-widest uppercase leading-none mb-1">
             Portfolio
@@ -130,7 +149,7 @@ export default function Dashboard() {
         </button>
       </div>
 
-      <div className="px-4 space-y-3">
+      <div className="px-5 space-y-6">
 
         {/* ── KPI Block ──────────────────────────────────────────────────────── */}
         <div className="bg-[#16161A] border border-[#24242A] rounded-xl p-5">
@@ -139,15 +158,15 @@ export default function Dashboard() {
           </p>
           <p
             className="text-[#F4F4F6] font-bold leading-none tabular-nums mb-5"
-            style={{ fontSize: 38 }}
+            style={{ fontSize: 48 }}
           >
-            {brl(totalValue)}
+            {brl(animatedValue)}
           </p>
 
           <InlineSparkline data={sparkData} />
 
           {lastUpdate && (
-            <p className="text-[#8E8E93] text-[11px] mt-2">
+            <p className="text-[#8E8E93] text-[11px] mt-3">
               Atualizado{' '}
               {new Date(lastUpdate).toLocaleDateString('pt-BR', {
                 day: '2-digit', month: 'short', year: 'numeric'
@@ -156,66 +175,69 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* ── Metrics 2×2 ────────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 gap-2.5">
-          <MetricCard label="Cartas"      value={String(uniqueOwned)} sub={`de ${TOTAL_CARDS}`} />
-          <MetricCard label="Valor Médio" value={brl(avgValue)} />
-          <MetricCard label="Progresso"   value={`${progress.toFixed(1)}%`} sub="da coleção" accent />
-          <MetricCard label="Sem Preço"   value={String(semPreco)} sub="itens" />
+        {/* ── Metrics chips — Cartas + Progresso ─────────────────────────────── */}
+        <div className="flex gap-3">
+          <div className="flex-1 bg-[#16161A] border border-[#24242A] rounded-xl p-5">
+            <p className="text-[#8E8E93] text-[10px] font-medium uppercase tracking-widest mb-2">Cartas</p>
+            <p className="text-[#F4F4F6] text-[22px] font-bold tabular-nums leading-none">{uniqueOwned}</p>
+            <p className="text-[#8E8E93] text-[11px] mt-1">de {TOTAL_CARDS}</p>
+          </div>
+          <div className="flex-1 bg-[#16161A] border border-[#24242A] rounded-xl p-5">
+            <p className="text-[#8E8E93] text-[10px] font-medium uppercase tracking-widest mb-2">Progresso</p>
+            <p className="text-[#00E676] text-[22px] font-bold tabular-nums leading-none">{progress.toFixed(1)}%</p>
+            <p className="text-[#8E8E93] text-[11px] mt-1">da coleção</p>
+          </div>
         </div>
 
-        {/* ── Top 3 Mais Valiosas ─────────────────────────────────────────────── */}
+        {/* ── Top 3 — horizontal scroll carousel ─────────────────────────────── */}
         {top3.length > 0 && (
-          <div className="bg-[#16161A] border border-[#24242A] rounded-xl overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3.5 border-b border-[#24242A]">
-              <p className="text-[#F4F4F6] text-sm font-semibold">Mais Valiosas</p>
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-[#F4F4F6] text-[15px] font-semibold">Mais Valiosas</p>
               <button
                 onClick={() => navigate('/pokedex')}
                 className="text-[#8E8E93] text-[12px] font-medium"
-                style={{ minHeight: 44 }}
+                style={{ minHeight: 44, display: 'flex', alignItems: 'center' }}
               >
                 Ver todas
               </button>
             </div>
-            {top3.map((item, i) => (
-              <button
-                key={item.id}
-                onClick={() => navigate(`/card/${item.card_id}`)}
-                className={`w-full flex items-center gap-3 px-4 active:bg-[#1C1C22] ${
-                  i < top3.length - 1 ? 'border-b border-[#24242A]' : ''
-                }`}
-                style={{ minHeight: 60 }}
-              >
-                <span className="text-[#8E8E93] text-xs font-medium w-4 text-center tabular-nums">
-                  {i + 1}
-                </span>
-                <div className="w-8 h-11 rounded-md overflow-hidden bg-[#0A0A0C] flex-shrink-0">
-                  {item.cards?.image_url && (
-                    <img
-                      src={item.cards.image_url}
-                      alt={item.cards?.name}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
-                  )}
-                </div>
-                <div className="flex-1 text-left min-w-0 py-3.5">
-                  <p className="text-[#F4F4F6] text-sm font-medium truncate">{item.cards?.name}</p>
-                  <p className="text-[#8E8E93] text-[11px] truncate mt-0.5">
-                    {item.cards?.set_code} · #{item.cards?.number}
-                  </p>
-                </div>
-                <p className="text-[#F4F4F6] text-sm font-bold tabular-nums flex-shrink-0 ml-2">
-                  {brl(item.price)}
-                </p>
-              </button>
-            ))}
+            <div className="overflow-x-auto scroll-hide -mx-5">
+              <div className="flex gap-3 px-5 pb-1" style={{ width: 'max-content' }}>
+                {top3.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => navigate(`/card/${item.card_id}`)}
+                    className="flex-shrink-0 w-36 bg-[#16161A] border border-[#24242A] rounded-2xl overflow-hidden active:bg-[#1C1C22]"
+                  >
+                    <div className="w-full" style={{ aspectRatio: '2.5/3.5' }}>
+                      {item.cards?.image_url && (
+                        <img
+                          src={item.cards.image_url}
+                          alt={item.cards?.name}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      )}
+                    </div>
+                    <div className="p-3 text-left">
+                      <p className="text-[#F4F4F6] text-[12px] font-semibold truncate leading-snug">
+                        {item.cards?.name}
+                      </p>
+                      <p className="text-[#00E676] text-[13px] font-bold tabular-nums mt-0.5">
+                        {brl(item.price)}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
         {/* ── Confirm update ─────────────────────────────────────────────────── */}
         {confirmUpdate && (
-          <div className="bg-[#16161A] border border-[#24242A] rounded-xl p-4 space-y-3">
+          <div className="bg-[#16161A] border border-[#24242A] rounded-xl p-5 space-y-4">
             <p className="text-[#F4F4F6] text-sm font-semibold">Atualizar Preços</p>
             <p className="text-[#8E8E93] text-sm leading-relaxed">
               Buscar preços para {collection.length} carta(s)? Pode levar alguns minutos.
@@ -223,13 +245,13 @@ export default function Dashboard() {
             <div className="flex gap-2 pt-1">
               <button
                 onClick={() => setConfirmUpdate(false)}
-                className="flex-1 h-11 rounded-xl bg-transparent border border-[#24242A] text-[#8E8E93] text-sm font-medium"
+                className="flex-1 h-12 rounded-xl bg-transparent border border-[#24242A] text-[#8E8E93] text-sm font-medium"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleUpdatePrices}
-                className="flex-1 h-11 rounded-xl bg-[#F4F4F6] text-[#0A0A0C] text-sm font-semibold"
+                className="flex-1 h-12 rounded-xl bg-[#F4F4F6] text-[#0A0A0C] text-sm font-semibold"
               >
                 Atualizar
               </button>
@@ -239,7 +261,7 @@ export default function Dashboard() {
 
         {/* ── Update progress ────────────────────────────────────────────────── */}
         {updating && (
-          <div className="bg-[#16161A] border border-[#24242A] rounded-xl p-4 space-y-3">
+          <div className="bg-[#16161A] border border-[#24242A] rounded-xl p-5 space-y-3">
             <div className="flex justify-between items-center">
               <p className="text-[#F4F4F6] text-sm font-semibold">Atualizando preços</p>
               <p className="text-[#8E8E93] text-xs tabular-nums">
@@ -262,7 +284,7 @@ export default function Dashboard() {
 
         {/* ── Update report ──────────────────────────────────────────────────── */}
         {updateReport && (
-          <div className="bg-[#16161A] border border-[#24242A] rounded-xl p-4 space-y-4">
+          <div className="bg-[#16161A] border border-[#24242A] rounded-xl p-5 space-y-4">
             <div className="flex justify-between items-center">
               <p className="text-[#F4F4F6] text-sm font-semibold">Resultado da Atualização</p>
               <button
@@ -278,7 +300,7 @@ export default function Dashboard() {
                   ↑ Valorizaram
                 </p>
                 {updateReport.up.map((c, i) => (
-                  <div key={i} className="flex justify-between items-center">
+                  <div key={i} className="flex justify-between items-center" style={{ minHeight: 40 }}>
                     <p className="text-[#F4F4F6] text-sm truncate flex-1 mr-3">{c.name}</p>
                     <p className="text-[#00E676] text-sm font-semibold tabular-nums flex-shrink-0">
                       +{brl(c.diff)}
@@ -293,7 +315,7 @@ export default function Dashboard() {
                   ↓ Desvalorizaram
                 </p>
                 {updateReport.down.map((c, i) => (
-                  <div key={i} className="flex justify-between items-center">
+                  <div key={i} className="flex justify-between items-center" style={{ minHeight: 40 }}>
                     <p className="text-[#F4F4F6] text-sm truncate flex-1 mr-3">{c.name}</p>
                     <p className="text-[#FF3B30] text-sm font-semibold tabular-nums flex-shrink-0">
                       {brl(c.diff)}
@@ -317,24 +339,11 @@ export default function Dashboard() {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function MetricCard({ label, value, sub, accent }) {
-  return (
-    <div className="bg-[#16161A] border border-[#24242A] rounded-xl p-4">
-      <p className="text-[#8E8E93] text-[10px] font-medium uppercase tracking-widest mb-2">{label}</p>
-      <p className={`text-xl font-bold tabular-nums leading-none ${accent ? 'text-[#00E676]' : 'text-[#F4F4F6]'}`}>
-        {value}
-      </p>
-      {sub && <p className="text-[#8E8E93] text-[11px] mt-1">{sub}</p>}
-    </div>
-  )
-}
-
 function InlineSparkline({ data }) {
-  const W = 300, H = 40, P = 2
+  const W = 300, H = 64, P = 2
 
   if (!data || data.length < 2) {
-    // Decorative fallback
-    const decorPts = '0,36 30,32 60,26 90,28 120,20 150,22 180,14 210,16 240,10 270,6 300,4'
+    const decorPts = '0,58 30,52 60,42 90,44 120,32 150,35 180,22 210,25 240,16 270,10 300,6'
     return <SparkSVG pts={decorPts} W={W} H={H} />
   }
 
@@ -352,7 +361,7 @@ function InlineSparkline({ data }) {
 
 function SparkSVG({ pts, W, H }) {
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-10" preserveAspectRatio="none">
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-16" preserveAspectRatio="none">
       <defs>
         <linearGradient id="sg" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%"   stopColor="#00E676" stopOpacity="0.14" />

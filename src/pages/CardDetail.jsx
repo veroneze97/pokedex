@@ -75,10 +75,10 @@ export default function CardDetail() {
   const chartHistory = filteredHistory.length > 1 ? filteredHistory : priceHistory
 
   return (
-    <div className="min-h-full bg-[#0A0A0C] pb-28">
+    <div className="min-h-full bg-[#0A0A0C] pb-32">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="safe-top flex items-center justify-between px-4 pt-3 pb-2">
+      <div className="safe-top flex items-center justify-between px-5 pt-3 pb-2">
         <button
           onClick={() => navigate(-1)}
           className="w-11 h-11 flex items-center justify-center bg-[#16161A] border border-[#24242A] rounded-xl text-[#F4F4F6]"
@@ -99,10 +99,10 @@ export default function CardDetail() {
         </button>
       </div>
 
-      {/* ── Card image — ~40% screen height ────────────────────────────────── */}
+      {/* ── Card image — 46vh ───────────────────────────────────────────────── */}
       <div
         className="flex justify-center items-center"
-        style={{ height: '40vh', paddingLeft: 24, paddingRight: 24 }}
+        style={{ height: '46vh', paddingLeft: 28, paddingRight: 28 }}
       >
         <img
           src={card.image_url}
@@ -111,13 +111,13 @@ export default function CardDetail() {
           style={{
             maxWidth: '72vw',
             filter: isUltra
-              ? 'drop-shadow(0 0 20px rgba(234,179,8,0.22)) drop-shadow(0 16px 48px rgba(0,0,0,0.85))'
-              : 'drop-shadow(0 16px 48px rgba(0,0,0,0.85))',
+              ? 'drop-shadow(0 0 20px rgba(234,179,8,0.22)) drop-shadow(0 20px 56px rgba(0,0,0,0.9))'
+              : 'drop-shadow(0 20px 56px rgba(0,0,0,0.9))',
           }}
         />
       </div>
 
-      <div className="px-4 pt-5 space-y-3">
+      <div className="px-5 pt-6 space-y-4">
 
         {/* ── Card identity ───────────────────────────────────────────────────── */}
         <div>
@@ -162,7 +162,7 @@ export default function CardDetail() {
         {tab === 'RAW' ? (
           <>
             {/* Price */}
-            <div className="bg-[#16161A] border border-[#24242A] rounded-xl p-4">
+            <div className="bg-[#16161A] border border-[#24242A] rounded-xl p-5">
               <p className="text-[#8E8E93] text-[10px] font-medium uppercase tracking-widest mb-2">
                 Preço Atual (BRL)
               </p>
@@ -171,7 +171,7 @@ export default function CardDetail() {
                   {latestPrice > 0 ? brl(latestPrice) : '—'}
                 </p>
                 {diff && (
-                  <span className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-full flex-shrink-0 ${
+                  <span className={`badge-pulse flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-full flex-shrink-0 ${
                     diff.positive
                       ? 'bg-[#00E67614] text-[#00E676]'
                       : 'bg-[#FF3B3014] text-[#FF3B30]'
@@ -184,7 +184,7 @@ export default function CardDetail() {
 
             {/* Market history chart */}
             {colItem && priceHistory.length > 1 && (
-              <div className="bg-[#16161A] border border-[#24242A] rounded-xl p-4 space-y-3">
+              <div className="bg-[#16161A] border border-[#24242A] rounded-xl p-5 space-y-3">
                 <p className="text-[#8E8E93] text-[10px] font-medium uppercase tracking-widest">
                   Histórico de Mercado
                 </p>
@@ -200,7 +200,7 @@ export default function CardDetail() {
                           ? 'bg-[#24242A] text-[#F4F4F6]'
                           : 'text-[#8E8E93]'
                       }`}
-                      style={{ minHeight: 36 }}
+                      style={{ minHeight: 40 }}
                     >
                       {p}
                     </button>
@@ -226,11 +226,11 @@ export default function CardDetail() {
             {/* Collection stats */}
             {colItem && (
               <div className="bg-[#16161A] border border-[#24242A] rounded-xl flex divide-x divide-[#24242A]">
-                <div className="flex-1 flex flex-col items-center py-4 gap-1">
+                <div className="flex-1 flex flex-col items-center py-5 gap-1">
                   <p className="text-[#F4F4F6] text-xl font-bold tabular-nums">{colItem.quantity}×</p>
                   <p className="text-[#8E8E93] text-[10px] font-medium uppercase tracking-wider">Quantidade</p>
                 </div>
-                <div className="flex-1 flex flex-col items-center py-4 gap-1">
+                <div className="flex-1 flex flex-col items-center py-5 gap-1">
                   <p className="text-[#F4F4F6] text-[17px] font-bold tabular-nums">
                     {latestPrice > 0 ? brl(latestPrice * colItem.quantity) : '—'}
                   </p>
@@ -265,8 +265,8 @@ export default function CardDetail() {
 function DetailRow({ label, value, last }) {
   return (
     <div
-      className={`flex items-center justify-between px-4 ${last ? '' : 'border-b border-[#24242A]'}`}
-      style={{ minHeight: 52 }}
+      className={`flex items-center justify-between px-5 ${last ? '' : 'border-b border-[#24242A]'}`}
+      style={{ minHeight: 64 }}
     >
       <p className="text-[#8E8E93] text-sm">{label}</p>
       <p className="text-[#F4F4F6] text-sm font-medium text-right max-w-[55%] truncate">{value}</p>

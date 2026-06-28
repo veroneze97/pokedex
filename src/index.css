@@ -25,13 +25,17 @@ html, body, #root {
   overscroll-behavior: none;
 }
 
-@keyframes spin    { to { transform: rotate(360deg); } }
-@keyframes pop     { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
-@keyframes fly-up  { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-120px) scale(0.3); opacity: 0; } }
+@keyframes spin      { to { transform: rotate(360deg); } }
+@keyframes pop       { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes fly-up    { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-120px) scale(0.3); opacity: 0; } }
+@keyframes card-enter { from { opacity: 0; transform: translateY(12px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes badge-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
 
 .pokeball-spin { animation: spin 1s linear infinite; }
 .card-pop      { animation: pop 0.3s ease-out; }
 .card-fly      { animation: fly-up 0.5s ease-in forwards; }
+.card-enter    { animation: card-enter 0.4s ease-out both; }
+.badge-pulse   { animation: badge-pulse 0.5s ease-in-out 1; }
 
 .silhouette {
   filter: brightness(0) saturate(100%) invert(8%) sepia(10%) saturate(200%) brightness(18%) contrast(90%);
