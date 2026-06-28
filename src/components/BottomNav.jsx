@@ -32,11 +32,11 @@ const MarketIcon = () => (
 )
 
 const tabs = [
-  { path: '/', label: 'Início', Icon: HomeIcon },
-  { path: '/pokedex', label: 'Coleção', Icon: CollectionIcon },
-  { path: '/camera', label: 'Escanear', Icon: CameraIcon, center: true },
-  { path: '/decks', label: 'Decks', Icon: DecksIcon },
-  { path: '/market', label: 'Mercado', Icon: MarketIcon },
+  { path: '/',        label: 'Início',   Icon: HomeIcon },
+  { path: '/pokedex', label: 'Coleção',  Icon: CollectionIcon },
+  { path: '/camera',  label: 'Escanear', Icon: CameraIcon, center: true },
+  { path: '/decks',   label: 'Decks',    Icon: DecksIcon },
+  { path: '/market',  label: 'Mercado',  Icon: MarketIcon },
 ]
 
 export default function BottomNav() {
@@ -44,7 +44,7 @@ export default function BottomNav() {
   const { pathname } = useLocation()
 
   return (
-    <nav className="flex items-end justify-around bg-[#0a1020] border-t border-[#1e2d45] safe-bottom pt-2 pb-1">
+    <nav className="flex items-end justify-around bg-[#0A0A0C] border-t border-[#24242A] safe-bottom pt-2">
       {tabs.map(({ path, label, Icon, center }) => {
         const active = pathname === path
         if (center) {
@@ -53,11 +53,18 @@ export default function BottomNav() {
               key={path}
               onClick={() => navigate(path)}
               className="flex flex-col items-center gap-1 -mt-5"
+              style={{ minWidth: 56, minHeight: 44 }}
             >
-              <div className={`flex items-center justify-center w-14 h-14 rounded-full shadow-lg btn-pulse ${active ? 'bg-[#2563EB]' : 'bg-[#3B82F6]'}`}>
+              <div className={`w-14 h-14 flex items-center justify-center rounded-full border ${
+                active
+                  ? 'bg-[#F4F4F6] border-[#F4F4F6] text-[#0A0A0C]'
+                  : 'bg-[#16161A] border-[#24242A] text-[#8E8E93]'
+              }`}>
                 <Icon />
               </div>
-              <span className={`text-[9px] font-medium ${active ? 'text-[#60A5FA]' : 'text-gray-500'}`}>{label}</span>
+              <span className={`text-[9px] font-medium ${active ? 'text-[#F4F4F6]' : 'text-[#8E8E93]'}`}>
+                {label}
+              </span>
             </button>
           )
         }
@@ -65,7 +72,8 @@ export default function BottomNav() {
           <button
             key={path}
             onClick={() => navigate(path)}
-            className={`flex flex-col items-center gap-1 px-3 py-1 ${active ? 'text-[#3B82F6] nav-active-glow' : 'text-gray-600'}`}
+            className={`flex flex-col items-center gap-1 px-3 py-1 ${active ? 'text-[#F4F4F6]' : 'text-[#8E8E93]'}`}
+            style={{ minWidth: 44, minHeight: 44 }}
           >
             <Icon />
             <span className="text-[9px] font-medium">{label}</span>
