@@ -68,7 +68,6 @@ export default async function handler(req, res) {
       const updates = {}
       if (!card.image_url && imageUrl) updates.image_url = imageUrl
       if (!card.rarity && rarity) updates.rarity = rarity
-      if (card.set_code !== 'PFLpt') updates.set_code = 'PFLpt'
       if (Object.keys(updates).length > 0) {
         await supabase.from('cards').update(updates).eq('id', card.id)
       }

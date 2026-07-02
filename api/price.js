@@ -17,7 +17,7 @@ export default async function handler(req, res) {
 }
 
 async function fetchTcgPrice(cardName, setCode) {
-  const setMap = { PFLpt: 'me2', pflpt: 'me2', ME2: 'me2' }
+  const setMap = { PFLpt: 'me2', pflpt: 'me2', ME2: 'me2', ME1pt: 'me1', me1pt: 'me1', ME1: 'me1' }
   const apiSetId = setMap[setCode] || setMap[setCode?.toLowerCase()] || 'me2'
 
   // Simplify name for search (remove accents and special chars)

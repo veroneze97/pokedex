@@ -5,7 +5,8 @@ import { fetchPrice } from '../services/pricing'
 import { brl, formatDate } from '../utils/format'
 import PokeballLoader from '../components/PokeballLoader'
 
-const TOTAL_CARDS = 130
+// Fallback caso o catálogo ainda não tenha carregado (130 PFLpt + 188 ME1pt)
+const FALLBACK_TOTAL = 318
 
 function useCountUp(target, duration = 1200) {
   const [value, setValue] = useState(0)
@@ -30,6 +31,7 @@ function useCountUp(target, duration = 1200) {
 export default function Dashboard() {
   const navigate = useNavigate()
   const [collection, setCollection]       = useState([])
+  const [cards, setCards]                 = useState([])
   const [prices, setPrices]               = useState({})
   const [loading, setLoading]             = useState(true)
   const [updating, setUpdating]           = useState(false)
@@ -42,8 +44,9 @@ export default function Dashboard() {
 
   async function loadData() {
     try {
-      const { collection: col, prices: priceMap } = await fetchAllData()
+      const { cards: allCards, collection: col, prices: priceMap } = await fetchAllData()
       setCollection(col || [])
+      setCards(allCards || [])
       setPrices(priceMap || {})
       if (priceMap && Object.values(priceMap).length > 0) {
         const latest = Object.values(priceMap).sort(
@@ -111,7 +114,8 @@ export default function Dashboard() {
     .slice(0, 3)
 
   const uniqueOwned = new Set(collection.map(c => c.card_id)).size
-  const progress    = (uniqueOwned / TOTAL_CARDS) * 100
+  const totalCards  = cards.length || FALLBACK_TOTAL
+  const progress    = (uniqueOwned / totalCards) * 100
 
   const sparkData = Object.values(prices)
     .sort((a, b) => new Date(a.date_recorded) - new Date(b.date_recorded))
@@ -180,7 +184,7 @@ export default function Dashboard() {
           <div className="flex-1 bg-[#16161A] border border-[#24242A] rounded-xl p-5">
             <p className="text-[#8E8E93] text-[10px] font-medium uppercase tracking-widest mb-2">Cartas</p>
             <p className="text-[#F4F4F6] text-[22px] font-bold tabular-nums leading-none">{uniqueOwned}</p>
-            <p className="text-[#8E8E93] text-[11px] mt-1">de {TOTAL_CARDS}</p>
+            <p className="text-[#8E8E93] text-[11px] mt-1">de {totalCards}</p>
           </div>
           <div className="flex-1 bg-[#16161A] border border-[#24242A] rounded-xl p-5">
             <p className="text-[#8E8E93] text-[10px] font-medium uppercase tracking-widest mb-2">Progresso</p>

@@ -3,7 +3,8 @@ import { fetchAllData } from '../services/api'
 import CardTile from '../components/CardTile'
 import PokeballLoader from '../components/PokeballLoader'
 
-const TOTAL = 130
+// Fallback caso o catálogo ainda não tenha carregado (130 PFLpt + 188 ME1pt)
+const TOTAL = 318
 
 export default function Pokedex() {
   const [cards, setCards]           = useState([])
