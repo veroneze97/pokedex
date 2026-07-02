@@ -206,7 +206,10 @@ export default function Camera() {
         className="pressable absolute top-12 left-5 z-20 w-11 h-11 flex items-center justify-center rounded-xl bg-[#000000]/70 border border-white/[0.06] text-[#F4F4F6]"
         style={{ backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', minWidth: 44, minHeight: 44 }}
       >
-        <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" /></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+          <path d="m12 19-7-7 7-7" />
+          <path d="M19 12H5" />
+        </svg>
       </button>
 
       {/* ── CÂMERA AO VIVO ── */}
@@ -216,8 +219,9 @@ export default function Camera() {
           {camState === 'idle' && (
             <div className="flex flex-col flex-1 items-center justify-center gap-8 px-8">
               <div className="w-24 h-24 rounded-full bg-[#101014] border border-white/[0.06] flex items-center justify-center">
-                <svg viewBox="0 0 24 24" fill="currentColor" className="w-11 h-11 text-[#8E8E93]">
-                  <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.5-10h-3.18L14 4h-4L7.68 5.5H4.5A2.5 2.5 0 0 0 2 8v11a2.5 2.5 0 0 0 2.5 2.5h15A2.5 2.5 0 0 0 22 19V8a2.5 2.5 0 0 0-2.5-2.5z" />
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-11 h-11 text-[#8E8E93]">
+                  <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                  <circle cx="12" cy="13" r="3" />
                 </svg>
               </div>
               <div className="text-center">
@@ -301,7 +305,10 @@ export default function Camera() {
               className="text-[#8E8E93] text-sm flex items-center gap-1.5"
               style={{ minHeight: 44 }}
             >
-              <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" /></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                <path d="m12 19-7-7 7-7" />
+                <path d="M19 12H5" />
+              </svg>
               Tentar novamente
             </button>
             <p className="text-[#8E8E93] text-[10px] font-medium uppercase tracking-widest">Confirmar carta</p>

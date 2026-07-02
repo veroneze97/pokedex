@@ -72,8 +72,10 @@ export default function Pokedex() {
           className="pressable w-11 h-11 flex items-center justify-center rounded-xl bg-[#101014] border border-white/[0.06] text-[#8E8E93]"
           style={{ minWidth: 44, minHeight: 44 }}
         >
-          <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-            <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
+          <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+            <circle cx="5" cy="12" r="1.6" />
+            <circle cx="12" cy="12" r="1.6" />
+            <circle cx="19" cy="12" r="1.6" />
           </svg>
         </button>
       </div>

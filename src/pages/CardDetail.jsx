@@ -17,6 +17,15 @@ export default function CardDetail() {
   const [loading, setLoading]         = useState(true)
   const [tab, setTab]                 = useState('RAW')
   const [period, setPeriod]           = useState('MAX')
+  const [tilt, setTilt]               = useState({ x: 0, y: 0 })
+
+  function handleTilt(e) {
+    const r = e.currentTarget.getBoundingClientRect()
+    const px = (e.clientX - r.left) / r.width - 0.5
+    const py = (e.clientY - r.top) / r.height - 0.5
+    setTilt({ x: -py * 14, y: px * 14 })
+  }
+  const resetTilt = () => setTilt({ x: 0, y: 0 })
 
   useEffect(() => { loadCard() }, [id])
 
@@ -85,8 +94,9 @@ export default function CardDetail() {
           className="pressable w-11 h-11 flex items-center justify-center bg-[#101014] border border-white/[0.06] rounded-xl text-[#F4F4F6]"
           style={{ minWidth: 44, minHeight: 44 }}
         >
-          <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-            <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+            <path d="m12 19-7-7 7-7" />
+            <path d="M19 12H5" />
           </svg>
         </button>
         <h1 className="text-[#F4F4F6] text-sm font-semibold">Detalhes da Carta</h1>
@@ -95,22 +105,41 @@ export default function CardDetail() {
           style={{ minWidth: 44, minHeight: 44 }}
         >
           <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-            <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
+            <circle cx="5" cy="12" r="1.6" />
+            <circle cx="12" cy="12" r="1.6" />
+            <circle cx="19" cy="12" r="1.6" />
           </svg>
         </button>
       </div>
 
-      {/* ── Card image — 46vh ───────────────────────────────────────────────── */}
+      {/* ── Card image — 46vh, glow ambiente + tilt 3D ─────────────────────── */}
       <div
-        className="flex justify-center items-center"
+        className="relative flex justify-center items-center overflow-hidden"
         style={{ height: '46vh', paddingLeft: 28, paddingRight: 28 }}
       >
+        {/* Glow ambiente: a própria carta desfocada "ilumina" a tela */}
+        <img
+          src={card.image_url}
+          alt=""
+          aria-hidden
+          className="absolute inset-0 w-full h-full object-contain pointer-events-none"
+          style={{ filter: 'blur(60px) saturate(1.5)', opacity: 0.35, transform: 'scale(1.15)' }}
+        />
         <img
           src={card.image_url}
           alt={card.name}
-          className="h-full w-auto object-contain rounded-xl"
+          className="relative h-full w-auto object-contain rounded-xl"
+          onPointerMove={handleTilt}
+          onPointerLeave={resetTilt}
+          onPointerUp={resetTilt}
+          onPointerCancel={resetTilt}
           style={{
             maxWidth: '72vw',
+            zIndex: 1,
+            // pan-y: tilt no toque sem bloquear o scroll vertical da página
+            touchAction: 'pan-y',
+            transform: `perspective(900px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
+            transition: 'transform 0.18s ease-out',
             filter: isUltra
               ? 'drop-shadow(0 0 20px rgba(234,179,8,0.22)) drop-shadow(0 20px 56px rgba(0,0,0,0.9))'
               : 'drop-shadow(0 20px 56px rgba(0,0,0,0.9))',

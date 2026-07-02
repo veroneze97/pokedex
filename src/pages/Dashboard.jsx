@@ -10,28 +10,6 @@ import Money from '../components/Money'
 // Fallback caso o catálogo ainda não tenha carregado (130 PFLpt + 188 ME1pt)
 const FALLBACK_TOTAL = 318
 
-function useCountUp(target, duration = 1200) {
-  const [value, setValue] = useState(0)
-  useEffect(() => {
-    if (!target) { setValue(0); return }
-    const start = Date.now()
-    let raf
-    function tick() {
-      const elapsed = Date.now() - start
-      const t = Math.min(elapsed / duration, 1)
-      const eased = 1 - Math.pow(1 - t, 3)
-      setValue(target * eased)
-      if (t < 1) raf = requestAnimationFrame(tick)
-      else setValue(target)
-    }
-    raf = requestAnimationFrame(tick)
-    // rAF pode ser suspenso (aba oculta, economia de energia) — garante o valor final
-    const failsafe = setTimeout(() => setValue(target), duration + 100)
-    return () => { cancelAnimationFrame(raf); clearTimeout(failsafe) }
-  }, [target])
-  return value
-}
-
 export default function Dashboard() {
   const navigate = useNavigate()
   const [collection, setCollection]       = useState([])
@@ -129,8 +107,6 @@ export default function Dashboard() {
   // Evolução do valor total do portfólio (snapshots diários)
   const sparkData = portfolio.map(p => p.total_brl)
 
-  const animatedValue = useCountUp(totalValue)
-
   // ── Loading ───────────────────────────────────────────────────────────────
   if (loading) {
     return (
@@ -178,7 +154,7 @@ export default function Dashboard() {
             Valor Total da Coleção
           </p>
           <p className="text-[#F4F4F6] leading-none mb-5">
-            <Money value={animatedValue} size={48} />
+            <Money value={totalValue} size={48} rolling />
           </p>
 
           <InlineSparkline data={sparkData} />
@@ -411,10 +387,15 @@ function SyncIcon({ spinning }) {
   return (
     <svg
       viewBox="0 0 24 24"
-      fill="currentColor"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
       className={`w-5 h-5 ${spinning ? 'pokeball-spin' : ''}`}
     >
-      <path d="M17.65 6.35A7.96 7.96 0 0 0 12 4C7.58 4 4 7.58 4 12s3.58 8 8 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+      <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+      <path d="M21 3v5h-5" />
     </svg>
   )
 }
