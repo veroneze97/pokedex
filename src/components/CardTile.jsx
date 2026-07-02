@@ -8,7 +8,7 @@ export default function CardTile({ card, owned, quantity, price, index = 0 }) {
 
   return (
     <button
-      onClick={() => navigate(`/card/${card.id}`)}
+      onClick={() => navigate(`/card/${card.id}`, { viewTransition: true })}
       className="pressable relative flex flex-col text-left card-enter"
       style={{ animationDelay: `${delay}ms` }}
     >

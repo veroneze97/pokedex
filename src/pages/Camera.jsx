@@ -202,7 +202,7 @@ export default function Camera() {
 
       {/* Botão voltar */}
       <button
-        onClick={() => { stopCamera(); navigate('/') }}
+        onClick={() => { stopCamera(); navigate('/', { viewTransition: true }) }}
         className="pressable absolute top-12 left-5 z-20 w-11 h-11 flex items-center justify-center rounded-xl bg-[#000000]/70 border border-white/[0.06] text-[#F4F4F6]"
         style={{ backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', minWidth: 44, minHeight: 44 }}
       >

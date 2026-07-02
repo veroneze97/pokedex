@@ -55,8 +55,15 @@ export default function Pokedex() {
   return (
     <div className="min-h-full bg-[#000000] pb-32">
 
-      {/* Header */}
-      <div className="safe-top flex items-center justify-between px-5 pt-5 pb-4">
+      {/* Header sticky com blur ao rolar */}
+      <div
+        className="safe-top sticky top-0 z-40 flex items-center justify-between px-5 pt-5 pb-4"
+        style={{
+          background: 'rgba(0, 0, 0, 0.8)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+        }}
+      >
         <div>
           <p className="text-[#8E8E93] text-[10px] font-medium uppercase tracking-widest mb-0.5">Coleção</p>
           <h1 className="text-[#F4F4F6] text-[17px] font-bold tracking-tight">Minha Coleção</h1>

@@ -143,8 +143,15 @@ export default function Dashboard() {
   return (
     <div className="min-h-full bg-[#000000] pb-32">
 
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="safe-top flex items-center justify-between px-5 pt-4 pb-5">
+      {/* ── Header sticky: o blur só aparece quando conteúdo rola por baixo ── */}
+      <div
+        className="safe-top sticky top-0 z-40 flex items-center justify-between px-5 pt-4 pb-4"
+        style={{
+          background: 'rgba(0, 0, 0, 0.8)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+        }}
+      >
         <div>
           <p className="text-[#8E8E93] text-[10px] font-medium tracking-widest uppercase leading-none mb-1">
             Portfolio
@@ -206,19 +213,25 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-4">
               <p className="text-[#F4F4F6] text-[15px] font-semibold">Mais Valiosas</p>
               <button
-                onClick={() => navigate('/pokedex')}
+                onClick={() => navigate('/pokedex', { viewTransition: true })}
                 className="text-[#8E8E93] text-[12px] font-medium"
                 style={{ minHeight: 44, display: 'flex', alignItems: 'center' }}
               >
                 Ver todas
               </button>
             </div>
-            <div className="overflow-x-auto scroll-hide -mx-5">
+            <div
+              className="overflow-x-auto scroll-hide -mx-5"
+              style={{
+                maskImage: 'linear-gradient(to right, transparent 0, black 20px, black calc(100% - 20px), transparent 100%)',
+                WebkitMaskImage: 'linear-gradient(to right, transparent 0, black 20px, black calc(100% - 20px), transparent 100%)',
+              }}
+            >
               <div className="flex gap-3 px-5 pb-1" style={{ width: 'max-content' }}>
                 {top3.map((item) => (
                   <button
                     key={item.id}
-                    onClick={() => navigate(`/card/${item.card_id}`)}
+                    onClick={() => navigate(`/card/${item.card_id}`, { viewTransition: true })}
                     className="pressable flex-shrink-0 w-36 bg-[#101014] border border-white/[0.06] rounded-2xl overflow-hidden active:bg-[#1A1A20]"
                   >
                     <div className="w-full" style={{ aspectRatio: '2.5/3.5' }}>
@@ -379,9 +392,11 @@ function SparkSVG({ pts, W, H }) {
           <stop offset="100%" stopColor="#00E676" stopOpacity="0" />
         </linearGradient>
       </defs>
-      <polygon points={`0,${H} ${pts} ${W},${H}`} fill="url(#sg)" />
+      <polygon points={`0,${H} ${pts} ${W},${H}`} fill="url(#sg)" className="spark-fill" />
       <polyline
         points={pts}
+        pathLength="1"
+        className="spark-draw"
         fill="none"
         stroke="#00E676"
         strokeWidth="1.5"

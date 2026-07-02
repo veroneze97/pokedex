@@ -39,16 +39,19 @@ export default function PriceChart({ history }) {
         <polygon
           points={`${P},${H} ${polyline} ${W - P},${H}`}
           fill="url(#chart-fill)"
+          className="spark-fill"
         />
         <polyline
           points={polyline}
+          pathLength="1"
+          className="spark-draw"
           fill="none"
           stroke={color}
           strokeWidth="1.5"
           strokeLinejoin="round"
           strokeLinecap="round"
         />
-        <circle cx={lastPt[0]} cy={lastPt[1]} r="3" fill={color} />
+        <circle cx={lastPt[0]} cy={lastPt[1]} r="3" fill={color} className="spark-fill" />
       </svg>
       <div className="flex justify-between text-[11px] mt-1">
         <span className="text-[#8E8E93]">{formatDate(history[0].date_recorded)}</span>

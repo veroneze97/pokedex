@@ -71,8 +71,15 @@ export default function CardDetail() {
   return (
     <div className="min-h-full bg-[#000000] pb-32">
 
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="safe-top flex items-center justify-between px-5 pt-3 pb-2">
+      {/* ── Header sticky com blur ao rolar ────────────────────────────────── */}
+      <div
+        className="safe-top sticky top-0 z-40 flex items-center justify-between px-5 pt-3 pb-2"
+        style={{
+          background: 'rgba(0, 0, 0, 0.8)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+        }}
+      >
         <button
           onClick={() => navigate(-1)}
           className="pressable w-11 h-11 flex items-center justify-center bg-[#101014] border border-white/[0.06] rounded-xl text-[#F4F4F6]"
@@ -238,7 +245,7 @@ export default function CardDetail() {
             {/* Not owned CTA */}
             {!colItem && (
               <button
-                onClick={() => navigate('/camera')}
+                onClick={() => navigate('/camera', { viewTransition: true })}
                 className="pressable w-full h-14 flex items-center justify-center bg-[#F4F4F6] text-[#000000] font-semibold text-sm rounded-xl"
               >
                 Adicionar via Câmera
