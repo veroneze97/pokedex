@@ -41,5 +41,12 @@ export default async function handler(req, res) {
     if (!priceMap[p.card_id]) priceMap[p.card_id] = p
   }
 
-  res.json({ cards, collection, prices: priceMap })
+  // Histórico do valor do portfólio (últimos 180 dias) para a sparkline
+  const { data: portfolio } = await supabase
+    .from('portfolio_history')
+    .select('snapshot_date, total_brl, cards_count')
+    .order('snapshot_date', { ascending: true })
+    .limit(180)
+
+  res.json({ cards, collection, prices: priceMap, portfolio: portfolio || [] })
 }

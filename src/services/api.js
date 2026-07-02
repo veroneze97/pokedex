@@ -4,7 +4,12 @@ import { apiFetch } from './http'
 export async function fetchAllData() {
   const res = await apiFetch('/api/cards')
   if (!res.ok) throw new Error('Erro ao carregar dados')
-  return res.json() // { cards, collection, prices }
+  return res.json() // { cards, collection, prices, portfolio }
+}
+
+export async function snapshotPortfolio() {
+  // Best-effort: grava o snapshot do dia após atualizar preços em lote
+  await apiFetch('/api/portfolio-snapshot', { method: 'POST' }).catch(() => {})
 }
 
 export async function fetchCardDetail(id) {

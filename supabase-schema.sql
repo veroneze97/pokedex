@@ -32,9 +32,19 @@ CREATE TABLE IF NOT EXISTS price_history (
 CREATE INDEX IF NOT EXISTS idx_price_history_card_date ON price_history(card_id, date_recorded DESC);
 CREATE INDEX IF NOT EXISTS idx_collection_card_id ON collection(card_id);
 
+-- Histórico do valor total do portfólio (1 snapshot por dia, via upsert)
+CREATE TABLE IF NOT EXISTS portfolio_history (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  snapshot_date DATE NOT NULL UNIQUE DEFAULT CURRENT_DATE,
+  total_brl     NUMERIC(12,2) NOT NULL,
+  cards_count   INT NOT NULL DEFAULT 0,
+  recorded_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- ── Row Level Security ────────────────────────────────────────────────────
 -- Todo acesso do app passa pela API (service role, que ignora RLS).
 -- A anon key fica sem NENHUM acesso: sem policies, RLS bloqueia tudo.
-ALTER TABLE cards         ENABLE ROW LEVEL SECURITY;
-ALTER TABLE collection    ENABLE ROW LEVEL SECURITY;
-ALTER TABLE price_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE cards             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE collection        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE price_history     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE portfolio_history ENABLE ROW LEVEL SECURITY;

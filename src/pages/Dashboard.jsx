@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { fetchAllData, savePriceApi } from '../services/api'
+import { fetchAllData, savePriceApi, snapshotPortfolio } from '../services/api'
 import { fetchPrice } from '../services/pricing'
 import { brl, formatDate } from '../utils/format'
 import PokeballLoader from '../components/PokeballLoader'
@@ -33,6 +33,7 @@ export default function Dashboard() {
   const [collection, setCollection]       = useState([])
   const [cards, setCards]                 = useState([])
   const [prices, setPrices]               = useState({})
+  const [portfolio, setPortfolio]         = useState([])
   const [loading, setLoading]             = useState(true)
   const [updating, setUpdating]           = useState(false)
   const [updateProgress, setUpdateProgress] = useState({ current: 0, total: 0, name: '' })
@@ -44,10 +45,11 @@ export default function Dashboard() {
 
   async function loadData() {
     try {
-      const { cards: allCards, collection: col, prices: priceMap } = await fetchAllData()
+      const { cards: allCards, collection: col, prices: priceMap, portfolio: hist } = await fetchAllData()
       setCollection(col || [])
       setCards(allCards || [])
       setPrices(priceMap || {})
+      setPortfolio(hist || [])
       if (priceMap && Object.values(priceMap).length > 0) {
         const latest = Object.values(priceMap).sort(
           (a, b) => new Date(b.date_recorded) - new Date(a.date_recorded)
@@ -99,6 +101,7 @@ export default function Dashboard() {
 
     setUpdateReport(report)
     setLastUpdate(new Date().toISOString())
+    await snapshotPortfolio()
     await loadData()
     setUpdating(false)
   }
@@ -117,9 +120,8 @@ export default function Dashboard() {
   const totalCards  = cards.length || FALLBACK_TOTAL
   const progress    = (uniqueOwned / totalCards) * 100
 
-  const sparkData = Object.values(prices)
-    .sort((a, b) => new Date(a.date_recorded) - new Date(b.date_recorded))
-    .map(p => p.price_brl)
+  // Evolução do valor total do portfólio (snapshots diários)
+  const sparkData = portfolio.map(p => p.total_brl)
 
   const animatedValue = useCountUp(totalValue)
 

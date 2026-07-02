@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { checkAuth } from './_auth.js'
+import { recordPortfolioSnapshot } from './_portfolio.js'
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -92,6 +93,9 @@ export default async function handler(req, res) {
         .from('collection')
         .insert({ card_id: card.id, quantity: 1, condition: 'NM', date_added: new Date().toISOString() })
     }
+
+    // Snapshot do portfólio — falha não bloqueia o salvamento da carta
+    try { await recordPortfolioSnapshot(supabase) } catch (e) { console.warn(e.message) }
 
     return res.json({ success: true, cardId: card.id })
   }
