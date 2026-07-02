@@ -9,10 +9,10 @@ export default function CardTile({ card, owned, quantity, price, index = 0 }) {
   return (
     <button
       onClick={() => navigate(`/card/${card.id}`)}
-      className="relative flex flex-col text-left card-enter"
+      className="pressable relative flex flex-col text-left card-enter"
       style={{ animationDelay: `${delay}ms` }}
     >
-      <div className="relative w-full aspect-[2.5/3.5] rounded-xl overflow-hidden bg-[#16161A] border border-[#24242A]">
+      <div className="relative w-full aspect-[2.5/3.5] rounded-xl overflow-hidden bg-[#101014] border border-white/[0.06]">
         <img
           src={card.images?.small || card.image_url}
           alt={card.name}
@@ -20,7 +20,7 @@ export default function CardTile({ card, owned, quantity, price, index = 0 }) {
           loading="lazy"
         />
         {owned && quantity > 1 && (
-          <span className="absolute top-2 right-2 bg-[#F4F4F6] text-[#0A0A0C] text-[10px] font-bold px-2 py-0.5 rounded-full leading-none">
+          <span className="absolute top-2 right-2 bg-[#F4F4F6] text-[#000000] text-[10px] font-bold px-2 py-0.5 rounded-full leading-none">
             {quantity}×
           </span>
         )}

@@ -47,7 +47,7 @@ export default function BottomNav() {
     <nav
       className="flex items-end justify-around safe-bottom pt-2"
       style={{
-        background: 'rgba(10, 10, 12, 0.88)',
+        background: 'rgba(0, 0, 0, 0.88)',
         backdropFilter: 'blur(24px)',
         WebkitBackdropFilter: 'blur(24px)',
         borderTop: '1px solid rgba(255,255,255,0.05)',
@@ -60,13 +60,13 @@ export default function BottomNav() {
             <button
               key={path}
               onClick={() => navigate(path)}
-              className="flex flex-col items-center gap-1 -mt-6"
+              className="pressable flex flex-col items-center gap-1 -mt-6"
               style={{ minWidth: 64, minHeight: 44 }}
             >
               <div className={`w-16 h-16 flex items-center justify-center rounded-full border-2 shadow-lg ${
                 active
-                  ? 'bg-[#F4F4F6] border-[#F4F4F6] text-[#0A0A0C]'
-                  : 'bg-[#16161A] border-[#24242A] text-[#8E8E93]'
+                  ? 'bg-[#F4F4F6] border-[#F4F4F6] text-[#000000]'
+                  : 'bg-[#101014] border-white/[0.06] text-[#8E8E93]'
               }`}>
                 <Icon />
               </div>
@@ -80,7 +80,7 @@ export default function BottomNav() {
           <button
             key={path}
             onClick={() => navigate(path)}
-            className={`flex flex-col items-center gap-1 px-3 py-2 ${active ? 'text-[#F4F4F6]' : 'text-[#8E8E93]'}`}
+            className={`pressable flex flex-col items-center gap-1 px-3 py-2 ${active ? 'text-[#F4F4F6]' : 'text-[#8E8E93]'}`}
             style={{ minWidth: 44, minHeight: 44 }}
           >
             <Icon />

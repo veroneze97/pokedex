@@ -46,14 +46,14 @@ export default function Pokedex() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full bg-[#0A0A0C]">
+      <div className="flex items-center justify-center h-full bg-[#000000]">
         <PokeballLoader text="Carregando coleção..." />
       </div>
     )
   }
 
   return (
-    <div className="min-h-full bg-[#0A0A0C] pb-32">
+    <div className="min-h-full bg-[#000000] pb-32">
 
       {/* Header */}
       <div className="safe-top flex items-center justify-between px-5 pt-5 pb-4">
@@ -62,7 +62,7 @@ export default function Pokedex() {
           <h1 className="text-[#F4F4F6] text-[17px] font-bold tracking-tight">Minha Coleção</h1>
         </div>
         <button
-          className="w-11 h-11 flex items-center justify-center rounded-xl bg-[#16161A] border border-[#24242A] text-[#8E8E93]"
+          className="pressable w-11 h-11 flex items-center justify-center rounded-xl bg-[#101014] border border-white/[0.06] text-[#8E8E93]"
           style={{ minWidth: 44, minHeight: 44 }}
         >
           <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
@@ -76,13 +76,13 @@ export default function Pokedex() {
         {offline && <OfflineBanner />}
 
         {/* Progress block */}
-        <div className="bg-[#16161A] border border-[#24242A] rounded-xl p-5">
+        <div className="bg-[#101014] border border-white/[0.06] rounded-xl p-5">
           <div className="flex items-baseline gap-2 mb-2">
             <span className="text-[#F4F4F6] font-bold text-4xl tabular-nums">{owned}</span>
             <span className="text-[#8E8E93] font-semibold text-2xl">/ {cards.length || TOTAL}</span>
           </div>
           <p className="text-[#00E676] text-sm font-semibold mb-4">{progress.toFixed(0)}% completo</p>
-          <div className="bg-[#24242A] rounded-full h-[3px]">
+          <div className="bg-white/[0.08] rounded-full h-[3px]">
             <div
               className="progress-bar h-[3px] rounded-full"
               style={{ width: `${Math.min(progress, 100)}%` }}
@@ -100,10 +100,10 @@ export default function Pokedex() {
             <button
               key={key}
               onClick={() => setFilter(key)}
-              className={`flex-1 rounded-xl text-[13px] font-semibold border transition-colors ${
+              className={`pressable flex-1 rounded-xl text-[13px] font-semibold border ${
                 filter === key
-                  ? 'bg-[#16161A] border-[#F4F4F6]/20 text-[#F4F4F6]'
-                  : 'bg-transparent border-[#24242A] text-[#8E8E93]'
+                  ? 'bg-[#101014] border-[#F4F4F6]/20 text-[#F4F4F6]'
+                  : 'bg-transparent border-white/[0.06] text-[#8E8E93]'
               }`}
               style={{ minHeight: 52 }}
             >
@@ -114,10 +114,10 @@ export default function Pokedex() {
 
         {/* Stats pills */}
         <div className="flex gap-2">
-          <span className="bg-[#16161A] border border-[#24242A] rounded-full px-3 py-1.5 text-[12px] text-[#8E8E93]">
+          <span className="bg-[#101014] border border-white/[0.06] rounded-full px-3 py-1.5 text-[12px] text-[#8E8E93]">
             <span className="text-[#F4F4F6] font-bold">{owned}</span> possuídas
           </span>
-          <span className="bg-[#16161A] border border-[#24242A] rounded-full px-3 py-1.5 text-[12px] text-[#8E8E93]">
+          <span className="bg-[#101014] border border-white/[0.06] rounded-full px-3 py-1.5 text-[12px] text-[#8E8E93]">
             <span className="text-[#F4F4F6] font-bold">{missing < 0 ? 0 : missing}</span> faltando
           </span>
         </div>

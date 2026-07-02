@@ -165,7 +165,7 @@ export default function Camera() {
   const showVideo = state === S.PREVIEW && camState === 'active'
 
   return (
-    <div className="relative flex flex-col h-full bg-[#0A0A0C] overflow-hidden">
+    <div className="relative flex flex-col h-full bg-[#000000] overflow-hidden">
 
       {/* Canvas oculto para captura */}
       <canvas ref={canvasRef} className="hidden" />
@@ -187,7 +187,7 @@ export default function Camera() {
 
       {/* Toast de sucesso */}
       {toast && (
-        <div className="absolute top-16 left-5 right-5 z-50 flex items-center gap-3 bg-[#16161A] border border-[#24242A] px-4 py-3.5 rounded-2xl shadow-2xl card-pop">
+        <div className="absolute top-16 left-5 right-5 z-50 flex items-center gap-3 bg-[#101014] border border-white/[0.06] px-4 py-3.5 rounded-2xl shadow-2xl card-pop">
           <div className="w-9 h-9 rounded-full bg-[#00E67614] flex items-center justify-center flex-shrink-0">
             <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-[#00E676]">
               <path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
@@ -203,7 +203,7 @@ export default function Camera() {
       {/* Botão voltar */}
       <button
         onClick={() => { stopCamera(); navigate('/') }}
-        className="absolute top-12 left-5 z-20 w-11 h-11 flex items-center justify-center rounded-xl bg-[#0A0A0C]/70 border border-[#24242A] text-[#F4F4F6]"
+        className="pressable absolute top-12 left-5 z-20 w-11 h-11 flex items-center justify-center rounded-xl bg-[#000000]/70 border border-white/[0.06] text-[#F4F4F6]"
         style={{ backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', minWidth: 44, minHeight: 44 }}
       >
         <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" /></svg>
@@ -215,7 +215,7 @@ export default function Camera() {
 
           {camState === 'idle' && (
             <div className="flex flex-col flex-1 items-center justify-center gap-8 px-8">
-              <div className="w-24 h-24 rounded-full bg-[#16161A] border border-[#24242A] flex items-center justify-center">
+              <div className="w-24 h-24 rounded-full bg-[#101014] border border-white/[0.06] flex items-center justify-center">
                 <svg viewBox="0 0 24 24" fill="currentColor" className="w-11 h-11 text-[#8E8E93]">
                   <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.5-10h-3.18L14 4h-4L7.68 5.5H4.5A2.5 2.5 0 0 0 2 8v11a2.5 2.5 0 0 0 2.5 2.5h15A2.5 2.5 0 0 0 22 19V8a2.5 2.5 0 0 0-2.5-2.5z" />
                 </svg>
@@ -226,7 +226,7 @@ export default function Camera() {
               </div>
               <button
                 onClick={startCamera}
-                className="w-full h-14 rounded-xl bg-[#F4F4F6] text-[#0A0A0C] font-semibold text-sm active:opacity-80"
+                className="pressable w-full h-14 rounded-xl bg-[#F4F4F6] text-[#000000] font-semibold text-sm active:opacity-80"
               >
                 Ativar Câmera
               </button>
@@ -244,7 +244,7 @@ export default function Camera() {
               <p className="text-[#8E8E93] text-sm leading-relaxed">Câmera não disponível. Verifique as permissões no browser e tente novamente.</p>
               <button
                 onClick={startCamera}
-                className="w-full h-12 rounded-xl bg-[#F4F4F6] text-[#0A0A0C] text-sm font-semibold active:opacity-80"
+                className="pressable w-full h-12 rounded-xl bg-[#F4F4F6] text-[#000000] text-sm font-semibold active:opacity-80"
               >
                 Tentar novamente
               </button>
@@ -270,7 +270,7 @@ export default function Camera() {
               {/* Botão captura na parte de baixo */}
               <div
                 className="absolute bottom-0 left-0 right-0 flex items-center justify-center py-6 safe-bottom z-10"
-                style={{ background: 'linear-gradient(to top, rgba(10,10,12,0.85), transparent)' }}
+                style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85), transparent)' }}
               >
                 <button
                   onClick={captureFrame}
@@ -294,7 +294,7 @@ export default function Camera() {
 
       {/* ── CONFIRMAR ── */}
       {state === S.CONFIRM && (
-        <div className="flex flex-col flex-1 bg-[#0A0A0C]">
+        <div className="flex flex-col flex-1 bg-[#000000]">
           <div className="safe-top px-5 pt-14 pb-2 flex items-center justify-between">
             <button
               onClick={reset}
@@ -316,7 +316,7 @@ export default function Camera() {
                 style={{ filter: 'drop-shadow(0 16px 48px rgba(0,0,0,0.85))' }}
               />
             </div>
-            <div className="bg-[#16161A] border border-[#24242A] rounded-xl overflow-hidden">
+            <div className="bg-[#101014] border border-white/[0.06] rounded-xl overflow-hidden">
               <Row label="Nome" value={identified?.name} bold />
               <Row label="Número" value={identified?.number} />
               <Row label="Raridade" value={rarityLabel[tcgCard?.rarity || identified?.rarity] || identified?.rarity} />
@@ -329,7 +329,7 @@ export default function Camera() {
             <button
               onClick={handleConfirm}
               disabled={saving}
-              className="w-full h-14 rounded-xl bg-[#F4F4F6] text-[#0A0A0C] font-semibold text-sm active:opacity-80 disabled:opacity-50 flex items-center justify-center gap-2"
+              className="pressable w-full h-14 rounded-xl bg-[#F4F4F6] text-[#000000] font-semibold text-sm active:opacity-80 disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {saving ? <><PokeballLoader size={20} /> Salvando...</> : 'Adicionar à Coleção'}
             </button>
@@ -348,7 +348,7 @@ export default function Camera() {
           <p className="text-[#8E8E93] text-sm leading-relaxed">{errorMsg}</p>
           <button
             onClick={reset}
-            className="w-full h-12 rounded-xl bg-[#F4F4F6] text-[#0A0A0C] font-semibold text-sm active:opacity-80"
+            className="pressable w-full h-12 rounded-xl bg-[#F4F4F6] text-[#000000] font-semibold text-sm active:opacity-80"
           >
             Tentar Novamente
           </button>
@@ -361,7 +361,7 @@ export default function Camera() {
 function Row({ label, value, bold, highlight, last }) {
   return (
     <div
-      className={`flex items-center justify-between px-5 ${last ? '' : 'border-b border-[#24242A]'}`}
+      className={`flex items-center justify-between px-5 ${last ? '' : 'border-b border-white/[0.06]'}`}
       style={{ minHeight: 52 }}
     >
       <span className="text-[#8E8E93] text-sm">{label}</span>

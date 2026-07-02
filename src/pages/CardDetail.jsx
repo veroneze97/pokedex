@@ -4,6 +4,7 @@ import { fetchCardDetail } from '../services/api'
 import { brl, rarityLabel, formatDate, diffLabel } from '../utils/format'
 import PriceChart from '../components/PriceChart'
 import PokeballLoader from '../components/PokeballLoader'
+import Money from '../components/Money'
 
 const PERIODS = ['1M', '3M', '6M', 'MAX']
 
@@ -43,7 +44,7 @@ export default function CardDetail() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full bg-[#0A0A0C]">
+      <div className="flex items-center justify-center h-full bg-[#000000]">
         <PokeballLoader />
       </div>
     )
@@ -51,7 +52,7 @@ export default function CardDetail() {
 
   if (!card) {
     return (
-      <div className="flex flex-col items-center justify-center h-full bg-[#0A0A0C] gap-3">
+      <div className="flex flex-col items-center justify-center h-full bg-[#000000] gap-3">
         <p className="text-[#8E8E93] text-sm">Carta não encontrada</p>
         <button onClick={() => navigate(-1)} className="text-[#F4F4F6] text-sm underline">
           Voltar
@@ -68,13 +69,13 @@ export default function CardDetail() {
   const chartHistory = filteredHistory.length > 1 ? filteredHistory : priceHistory
 
   return (
-    <div className="min-h-full bg-[#0A0A0C] pb-32">
+    <div className="min-h-full bg-[#000000] pb-32">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="safe-top flex items-center justify-between px-5 pt-3 pb-2">
         <button
           onClick={() => navigate(-1)}
-          className="w-11 h-11 flex items-center justify-center bg-[#16161A] border border-[#24242A] rounded-xl text-[#F4F4F6]"
+          className="pressable w-11 h-11 flex items-center justify-center bg-[#101014] border border-white/[0.06] rounded-xl text-[#F4F4F6]"
           style={{ minWidth: 44, minHeight: 44 }}
         >
           <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
@@ -83,7 +84,7 @@ export default function CardDetail() {
         </button>
         <h1 className="text-[#F4F4F6] text-sm font-semibold">Detalhes da Carta</h1>
         <button
-          className="w-11 h-11 flex items-center justify-center bg-[#16161A] border border-[#24242A] rounded-xl text-[#8E8E93]"
+          className="pressable w-11 h-11 flex items-center justify-center bg-[#101014] border border-white/[0.06] rounded-xl text-[#8E8E93]"
           style={{ minWidth: 44, minHeight: 44 }}
         >
           <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
@@ -119,7 +120,7 @@ export default function CardDetail() {
             <span className="text-[#8E8E93] text-sm">{card.set_name || card.set_code}</span>
             {card.number && (
               <>
-                <span className="text-[#24242A]">·</span>
+                <span className="text-white/15">·</span>
                 <span className="text-[#8E8E93] text-sm">#{card.number}</span>
               </>
             )}
@@ -127,7 +128,7 @@ export default function CardDetail() {
               <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
                 isUltra
                   ? 'bg-[#241800] text-[#FFB800]'
-                  : 'bg-[#16161A] border border-[#24242A] text-[#8E8E93]'
+                  : 'bg-[#101014] border border-white/[0.06] text-[#8E8E93]'
               }`}>
                 {rarityLabel[card.rarity] || card.rarity}
               </span>
@@ -136,13 +137,13 @@ export default function CardDetail() {
         </div>
 
         {/* ── Segmented control (iOS-style) ─────────────────────────────────── */}
-        <div className="flex bg-[#16161A] border border-[#24242A] rounded-xl p-1 gap-1">
+        <div className="flex bg-[#101014] border border-white/[0.06] rounded-xl p-1 gap-1">
           {['RAW', 'GRADED', 'POP'].map(t => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`flex-1 rounded-lg text-[13px] font-semibold transition-colors ${
-                tab === t ? 'bg-[#F4F4F6] text-[#0A0A0C]' : 'text-[#8E8E93]'
+              className={`pressable flex-1 rounded-lg text-[13px] font-semibold transition-colors ${
+                tab === t ? 'bg-[#F4F4F6] text-[#000000]' : 'text-[#8E8E93]'
               }`}
               style={{ minHeight: 44 }}
             >
@@ -155,13 +156,15 @@ export default function CardDetail() {
         {tab === 'RAW' ? (
           <>
             {/* Price */}
-            <div className="bg-[#16161A] border border-[#24242A] rounded-xl p-5">
+            <div className="bg-[#101014] border border-white/[0.06] rounded-xl p-5">
               <p className="text-[#8E8E93] text-[10px] font-medium uppercase tracking-widest mb-2">
                 Preço Atual (BRL)
               </p>
               <div className="flex items-end justify-between gap-3">
-                <p className="text-[#F4F4F6] text-3xl font-bold tabular-nums leading-none">
-                  {latestPrice > 0 ? brl(latestPrice) : '—'}
+                <p className="text-[#F4F4F6] leading-none">
+                  {latestPrice > 0
+                    ? <Money value={latestPrice} size={30} />
+                    : <span className="text-3xl font-bold">—</span>}
                 </p>
                 {diff && (
                   <span className={`badge-pulse flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-full flex-shrink-0 ${
@@ -177,7 +180,7 @@ export default function CardDetail() {
 
             {/* Market history chart */}
             {colItem && priceHistory.length > 1 && (
-              <div className="bg-[#16161A] border border-[#24242A] rounded-xl p-5 space-y-3">
+              <div className="bg-[#101014] border border-white/[0.06] rounded-xl p-5 space-y-3">
                 <p className="text-[#8E8E93] text-[10px] font-medium uppercase tracking-widest">
                   Histórico de Mercado
                 </p>
@@ -188,9 +191,9 @@ export default function CardDetail() {
                     <button
                       key={p}
                       onClick={() => setPeriod(p)}
-                      className={`flex-1 rounded-lg text-[12px] font-semibold transition-colors ${
+                      className={`pressable flex-1 rounded-lg text-[12px] font-semibold transition-colors ${
                         period === p
-                          ? 'bg-[#24242A] text-[#F4F4F6]'
+                          ? 'bg-white/[0.08] text-[#F4F4F6]'
                           : 'text-[#8E8E93]'
                       }`}
                       style={{ minHeight: 40 }}
@@ -203,7 +206,7 @@ export default function CardDetail() {
             )}
 
             {/* Details list */}
-            <div className="bg-[#16161A] border border-[#24242A] rounded-xl overflow-hidden">
+            <div className="bg-[#101014] border border-white/[0.06] rounded-xl overflow-hidden">
               <DetailRow label="Coleção"   value={card.set_name || card.set_code || '—'} />
               <DetailRow label="Número"    value={card.number ? `#${card.number}` : '—'} />
               <DetailRow label="Ilustrador" value={card.illustrator || '—'} />
@@ -218,7 +221,7 @@ export default function CardDetail() {
 
             {/* Collection stats */}
             {colItem && (
-              <div className="bg-[#16161A] border border-[#24242A] rounded-xl flex divide-x divide-[#24242A]">
+              <div className="bg-[#101014] border border-white/[0.06] rounded-xl flex divide-x divide-white/[0.06]">
                 <div className="flex-1 flex flex-col items-center py-5 gap-1">
                   <p className="text-[#F4F4F6] text-xl font-bold tabular-nums">{colItem.quantity}×</p>
                   <p className="text-[#8E8E93] text-[10px] font-medium uppercase tracking-wider">Quantidade</p>
@@ -236,7 +239,7 @@ export default function CardDetail() {
             {!colItem && (
               <button
                 onClick={() => navigate('/camera')}
-                className="w-full h-14 flex items-center justify-center bg-[#F4F4F6] text-[#0A0A0C] font-semibold text-sm rounded-xl"
+                className="pressable w-full h-14 flex items-center justify-center bg-[#F4F4F6] text-[#000000] font-semibold text-sm rounded-xl"
               >
                 Adicionar via Câmera
               </button>
@@ -244,7 +247,7 @@ export default function CardDetail() {
           </>
         ) : (
           /* GRADED / POP placeholder */
-          <div className="bg-[#16161A] border border-[#24242A] rounded-xl p-10 flex flex-col items-center gap-2">
+          <div className="bg-[#101014] border border-white/[0.06] rounded-xl p-10 flex flex-col items-center gap-2">
             <p className="text-[#F4F4F6] text-sm font-semibold">{tab}</p>
             <p className="text-[#8E8E93] text-sm text-center">Dados de grading em breve</p>
           </div>
@@ -258,7 +261,7 @@ export default function CardDetail() {
 function DetailRow({ label, value, last }) {
   return (
     <div
-      className={`flex items-center justify-between px-5 ${last ? '' : 'border-b border-[#24242A]'}`}
+      className={`flex items-center justify-between px-5 ${last ? '' : 'border-b border-white/[0.06]'}`}
       style={{ minHeight: 64 }}
     >
       <p className="text-[#8E8E93] text-sm">{label}</p>

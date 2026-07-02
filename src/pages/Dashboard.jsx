@@ -5,6 +5,7 @@ import { fetchPrice } from '../services/pricing'
 import { brl } from '../utils/format'
 import PokeballLoader from '../components/PokeballLoader'
 import OfflineBanner from '../components/OfflineBanner'
+import Money from '../components/Money'
 
 // Fallback caso o catálogo ainda não tenha carregado (130 PFLpt + 188 ME1pt)
 const FALLBACK_TOTAL = 318
@@ -133,14 +134,14 @@ export default function Dashboard() {
   // ── Loading ───────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full bg-[#0A0A0C]">
+      <div className="flex items-center justify-center h-full bg-[#000000]">
         <PokeballLoader text="Carregando coleção..." />
       </div>
     )
   }
 
   return (
-    <div className="min-h-full bg-[#0A0A0C] pb-32">
+    <div className="min-h-full bg-[#000000] pb-32">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="safe-top flex items-center justify-between px-5 pt-4 pb-5">
@@ -153,7 +154,7 @@ export default function Dashboard() {
         <button
           onClick={() => setConfirmUpdate(true)}
           disabled={updating}
-          className="w-11 h-11 flex items-center justify-center rounded-xl bg-[#16161A] border border-[#24242A] text-[#8E8E93] active:bg-[#24242A] disabled:opacity-40"
+          className="pressable w-11 h-11 flex items-center justify-center rounded-xl bg-[#101014] border border-white/[0.06] text-[#8E8E93] active:bg-[#1A1A20] disabled:opacity-40"
           style={{ minWidth: 44, minHeight: 44 }}
         >
           <SyncIcon spinning={updating} />
@@ -165,15 +166,12 @@ export default function Dashboard() {
         {offline && <OfflineBanner />}
 
         {/* ── KPI Block ──────────────────────────────────────────────────────── */}
-        <div className="bg-[#16161A] border border-[#24242A] rounded-xl p-5">
+        <div className="bg-[#101014] border border-white/[0.06] rounded-xl p-5">
           <p className="text-[#8E8E93] text-[10px] font-medium uppercase tracking-widest mb-3">
             Valor Total da Coleção
           </p>
-          <p
-            className="text-[#F4F4F6] font-bold leading-none tabular-nums mb-5"
-            style={{ fontSize: 48 }}
-          >
-            {brl(animatedValue)}
+          <p className="text-[#F4F4F6] leading-none mb-5">
+            <Money value={animatedValue} size={48} />
           </p>
 
           <InlineSparkline data={sparkData} />
@@ -190,12 +188,12 @@ export default function Dashboard() {
 
         {/* ── Metrics chips — Cartas + Progresso ─────────────────────────────── */}
         <div className="flex gap-3">
-          <div className="flex-1 bg-[#16161A] border border-[#24242A] rounded-xl p-5">
+          <div className="flex-1 bg-[#101014] border border-white/[0.06] rounded-xl p-5">
             <p className="text-[#8E8E93] text-[10px] font-medium uppercase tracking-widest mb-2">Cartas</p>
             <p className="text-[#F4F4F6] text-[22px] font-bold tabular-nums leading-none">{uniqueOwned}</p>
             <p className="text-[#8E8E93] text-[11px] mt-1">de {totalCards}</p>
           </div>
-          <div className="flex-1 bg-[#16161A] border border-[#24242A] rounded-xl p-5">
+          <div className="flex-1 bg-[#101014] border border-white/[0.06] rounded-xl p-5">
             <p className="text-[#8E8E93] text-[10px] font-medium uppercase tracking-widest mb-2">Progresso</p>
             <p className="text-[#00E676] text-[22px] font-bold tabular-nums leading-none">{progress.toFixed(1)}%</p>
             <p className="text-[#8E8E93] text-[11px] mt-1">da coleção</p>
@@ -221,7 +219,7 @@ export default function Dashboard() {
                   <button
                     key={item.id}
                     onClick={() => navigate(`/card/${item.card_id}`)}
-                    className="flex-shrink-0 w-36 bg-[#16161A] border border-[#24242A] rounded-2xl overflow-hidden active:bg-[#1C1C22]"
+                    className="pressable flex-shrink-0 w-36 bg-[#101014] border border-white/[0.06] rounded-2xl overflow-hidden active:bg-[#1A1A20]"
                   >
                     <div className="w-full" style={{ aspectRatio: '2.5/3.5' }}>
                       {item.cards?.image_url && (
@@ -250,7 +248,7 @@ export default function Dashboard() {
 
         {/* ── Confirm update ─────────────────────────────────────────────────── */}
         {confirmUpdate && (
-          <div className="bg-[#16161A] border border-[#24242A] rounded-xl p-5 space-y-4">
+          <div className="bg-[#101014] border border-white/[0.06] rounded-xl p-5 space-y-4">
             <p className="text-[#F4F4F6] text-sm font-semibold">Atualizar Preços</p>
             <p className="text-[#8E8E93] text-sm leading-relaxed">
               Buscar preços para {collection.length} carta(s)? Pode levar alguns minutos.
@@ -258,13 +256,13 @@ export default function Dashboard() {
             <div className="flex gap-2 pt-1">
               <button
                 onClick={() => setConfirmUpdate(false)}
-                className="flex-1 h-12 rounded-xl bg-transparent border border-[#24242A] text-[#8E8E93] text-sm font-medium"
+                className="pressable flex-1 h-12 rounded-xl bg-transparent border border-white/[0.06] text-[#8E8E93] text-sm font-medium"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleUpdatePrices}
-                className="flex-1 h-12 rounded-xl bg-[#F4F4F6] text-[#0A0A0C] text-sm font-semibold"
+                className="pressable flex-1 h-12 rounded-xl bg-[#F4F4F6] text-[#000000] text-sm font-semibold"
               >
                 Atualizar
               </button>
@@ -274,14 +272,14 @@ export default function Dashboard() {
 
         {/* ── Update progress ────────────────────────────────────────────────── */}
         {updating && (
-          <div className="bg-[#16161A] border border-[#24242A] rounded-xl p-5 space-y-3">
+          <div className="bg-[#101014] border border-white/[0.06] rounded-xl p-5 space-y-3">
             <div className="flex justify-between items-center">
               <p className="text-[#F4F4F6] text-sm font-semibold">Atualizando preços</p>
               <p className="text-[#8E8E93] text-xs tabular-nums">
                 {updateProgress.current}/{updateProgress.total}
               </p>
             </div>
-            <div className="bg-[#24242A] rounded-full h-[2px]">
+            <div className="bg-white/[0.08] rounded-full h-[2px]">
               <div
                 className="bg-[#00E676] h-[2px] rounded-full transition-all duration-500"
                 style={{
@@ -297,7 +295,7 @@ export default function Dashboard() {
 
         {/* ── Update report ──────────────────────────────────────────────────── */}
         {updateReport && (
-          <div className="bg-[#16161A] border border-[#24242A] rounded-xl p-5 space-y-4">
+          <div className="bg-[#101014] border border-white/[0.06] rounded-xl p-5 space-y-4">
             <div className="flex justify-between items-center">
               <p className="text-[#F4F4F6] text-sm font-semibold">Resultado da Atualização</p>
               <button

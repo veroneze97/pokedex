@@ -9,8 +9,8 @@ import ErrorBoundary from './components/ErrorBoundary'
 
 function ComingSoon({ title }) {
   return (
-    <div className="flex flex-col items-center justify-center h-full bg-[#0A0A0C] gap-3 px-8">
-      <div className="w-16 h-16 rounded-full bg-[#16161A] border border-[#24242A] flex items-center justify-center">
+    <div className="flex flex-col items-center justify-center h-full bg-[#000000] gap-3 px-8">
+      <div className="w-16 h-16 rounded-full bg-[#101014] border border-white/[0.06] flex items-center justify-center">
         <svg viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7 text-[#8E8E93]">
           <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
         </svg>
