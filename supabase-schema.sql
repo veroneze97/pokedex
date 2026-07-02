@@ -31,3 +31,10 @@ CREATE TABLE IF NOT EXISTS price_history (
 -- Índices úteis
 CREATE INDEX IF NOT EXISTS idx_price_history_card_date ON price_history(card_id, date_recorded DESC);
 CREATE INDEX IF NOT EXISTS idx_collection_card_id ON collection(card_id);
+
+-- ── Row Level Security ────────────────────────────────────────────────────
+-- Todo acesso do app passa pela API (service role, que ignora RLS).
+-- A anon key fica sem NENHUM acesso: sem policies, RLS bloqueia tudo.
+ALTER TABLE cards         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE collection    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE price_history ENABLE ROW LEVEL SECURITY;

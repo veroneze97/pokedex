@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { supabase, getPriceHistory } from '../services/supabase'
+import { fetchCardDetail } from '../services/api'
 import { brl, rarityLabel, formatDate, diffLabel } from '../utils/format'
 import PriceChart from '../components/PriceChart'
 import PokeballLoader from '../components/PokeballLoader'
@@ -21,17 +21,10 @@ export default function CardDetail() {
 
   async function loadCard() {
     try {
-      const { data: cardData } = await supabase.from('cards').select('*').eq('id', id).single()
+      const { card: cardData, colItem: colData, priceHistory: hist } = await fetchCardDetail(id)
       setCard(cardData)
-
-      const { data: colData } = await supabase
-        .from('collection').select('*').eq('card_id', id).single()
       setColItem(colData)
-
-      if (colData) {
-        const hist = await getPriceHistory(id)
-        setPriceHistory(hist)
-      }
+      setPriceHistory(hist || [])
     } catch (e) {
       console.error(e)
     } finally {

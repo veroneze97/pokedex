@@ -1,12 +1,21 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { checkAuth, rateLimit } from './_auth.js'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
+// ~6MB de base64 ≈ 4.5MB de imagem — muito acima do que uma foto de carta precisa
+const MAX_IMAGE_BASE64 = 6_000_000
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
+  if (!checkAuth(req, res)) return
+  if (!rateLimit(req, res, { limit: 10, windowMs: 60_000 })) return
 
   const { image } = req.body
   if (!image) return res.status(400).json({ error: 'Imagem obrigatória' })
+  if (typeof image !== 'string' || image.length > MAX_IMAGE_BASE64) {
+    return res.status(413).json({ error: 'Imagem muito grande' })
+  }
 
   try {
     const response = await client.messages.create({

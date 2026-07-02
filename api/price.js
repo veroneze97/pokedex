@@ -1,7 +1,11 @@
 export const maxDuration = 30
 
+import { checkAuth, rateLimit } from './_auth.js'
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
+  if (!checkAuth(req, res)) return
+  if (!rateLimit(req, res, { limit: 60, windowMs: 60_000 })) return
 
   const { cardName, setCode } = req.body
   if (!cardName) return res.status(400).json({ error: 'cardName obrigatório' })

@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { checkAuth } from './_auth.js'
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -17,6 +18,7 @@ export default async function handler(req, res) {
   }
 
   if (method === 'POST') {
+    if (!checkAuth(req, res)) return
     const { number, setCode, name, rarity, imageUrl } = req.body
 
     // Determine canonical ID prefix by setCode
