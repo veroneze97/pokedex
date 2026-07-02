@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { fetchAllData } from '../services/api'
 import CardTile from '../components/CardTile'
 import PokeballLoader from '../components/PokeballLoader'
+import OfflineBanner from '../components/OfflineBanner'
 
 // Fallback caso o catálogo ainda não tenha carregado (130 PFLpt + 188 ME1pt)
 const TOTAL = 318
@@ -12,17 +13,19 @@ export default function Pokedex() {
   const [prices, setPrices]         = useState({})
   const [filter, setFilter]         = useState('Todas')
   const [loading, setLoading]       = useState(true)
+  const [offline, setOffline]       = useState(false)
 
   useEffect(() => { loadAll() }, [])
 
   async function loadAll() {
     try {
-      const { cards: allCards, collection: col, prices: priceMap } = await fetchAllData()
+      const { cards: allCards, collection: col, prices: priceMap, offline: isOffline } = await fetchAllData()
       setCards(allCards || [])
       const map = {}
       for (const item of (col || [])) map[item.card_id] = item
       setCollection(map)
       setPrices(priceMap || {})
+      setOffline(!!isOffline)
     } catch (e) {
       console.error(e)
     } finally {
@@ -69,6 +72,8 @@ export default function Pokedex() {
       </div>
 
       <div className="px-5 space-y-5">
+
+        {offline && <OfflineBanner />}
 
         {/* Progress block */}
         <div className="bg-[#16161A] border border-[#24242A] rounded-xl p-5">

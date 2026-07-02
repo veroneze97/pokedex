@@ -118,7 +118,7 @@ export default function Camera() {
       setTcgCard(tcg.status === 'fulfilled' ? tcg.value : null)
       setPrice(priceRes.status === 'fulfilled' ? priceRes.value : null)
       setState(S.CONFIRM)
-    } catch (e) {
+    } catch {
       setErrorMsg('Não consegui identificar essa carta. Tente novamente com melhor iluminação e a carta centralizada na moldura.')
       setState(S.ERROR)
     }

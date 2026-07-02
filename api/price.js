@@ -20,6 +20,28 @@ export default async function handler(req, res) {
   res.status(404).json({ error: 'Preço não encontrado' })
 }
 
+// Cotação USD→BRL com cache de 1h por instância; fallback se a API cair
+let rateCache = { value: 5.75, fetchedAt: 0 }
+const RATE_TTL = 60 * 60 * 1000
+
+async function getUsdBrlRate() {
+  if (Date.now() - rateCache.fetchedAt < RATE_TTL) return rateCache.value
+  try {
+    const res = await fetch('https://economia.awesomeapi.com.br/json/last/USD-BRL')
+    if (res.ok) {
+      const data = await res.json()
+      const bid = parseFloat(data?.USDBRL?.bid)
+      if (bid > 0) {
+        rateCache = { value: bid, fetchedAt: Date.now() }
+        return bid
+      }
+    }
+  } catch (e) {
+    console.warn('Cotação USD-BRL indisponível, usando último valor:', e.message)
+  }
+  return rateCache.value
+}
+
 async function fetchTcgPrice(cardName, setCode) {
   const setMap = { PFLpt: 'me2', pflpt: 'me2', ME2: 'me2', ME1pt: 'me1', me1pt: 'me1', ME1: 'me1' }
   const apiSetId = setMap[setCode] || setMap[setCode?.toLowerCase()] || 'me2'
@@ -50,13 +72,13 @@ async function fetchTcgPrice(cardName, setCode) {
     const data2 = await res2.json()
     const card2 = data2.data?.find(c => c.set?.id === apiSetId) || data2.data?.[0]
     if (!card2) return null
-    return extractPrice(card2)
+    return extractPrice(card2, await getUsdBrlRate())
   }
 
-  return extractPrice(card)
+  return extractPrice(card, await getUsdBrlRate())
 }
 
-function extractPrice(card) {
+function extractPrice(card, brlRate) {
   const prices = card.tcgplayer?.prices
   if (!prices) return null
 
@@ -69,8 +91,7 @@ function extractPrice(card) {
 
   if (!usdPrice || usdPrice <= 0) return null
 
-  const BRL_RATE = 5.75
-  const brlPrice = Math.round(usdPrice * BRL_RATE * 100) / 100
+  const brlPrice = Math.round(usdPrice * brlRate * 100) / 100
 
   return { price: brlPrice, source: 'tcgapi_usd' }
 }

@@ -1,10 +1,21 @@
 // Todos os acessos ao banco passam pelo servidor (service role key)
 import { apiFetch } from './http'
 
+const CACHE_KEY = 'pokedex-data-v1'
+
 export async function fetchAllData() {
-  const res = await apiFetch('/api/cards')
-  if (!res.ok) throw new Error('Erro ao carregar dados')
-  return res.json() // { cards, collection, prices, portfolio }
+  try {
+    const res = await apiFetch('/api/cards')
+    if (!res.ok) throw new Error('Erro ao carregar dados')
+    const data = await res.json() // { cards, collection, prices, portfolio }
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)) } catch { /* storage cheio */ }
+    return { ...data, offline: false }
+  } catch (e) {
+    // Sem rede: devolve o último payload salvo para o app seguir utilizável
+    const cached = localStorage.getItem(CACHE_KEY)
+    if (cached) return { ...JSON.parse(cached), offline: true }
+    throw e
+  }
 }
 
 export async function snapshotPortfolio() {

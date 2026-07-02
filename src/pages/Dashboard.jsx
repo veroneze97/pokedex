@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { fetchAllData, savePriceApi, snapshotPortfolio } from '../services/api'
 import { fetchPrice } from '../services/pricing'
-import { brl, formatDate } from '../utils/format'
+import { brl } from '../utils/format'
 import PokeballLoader from '../components/PokeballLoader'
+import OfflineBanner from '../components/OfflineBanner'
 
 // Fallback caso o catálogo ainda não tenha carregado (130 PFLpt + 188 ME1pt)
 const FALLBACK_TOTAL = 318
@@ -23,7 +24,9 @@ function useCountUp(target, duration = 1200) {
       else setValue(target)
     }
     raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
+    // rAF pode ser suspenso (aba oculta, economia de energia) — garante o valor final
+    const failsafe = setTimeout(() => setValue(target), duration + 100)
+    return () => { cancelAnimationFrame(raf); clearTimeout(failsafe) }
   }, [target])
   return value
 }
@@ -34,6 +37,7 @@ export default function Dashboard() {
   const [cards, setCards]                 = useState([])
   const [prices, setPrices]               = useState({})
   const [portfolio, setPortfolio]         = useState([])
+  const [offline, setOffline]             = useState(false)
   const [loading, setLoading]             = useState(true)
   const [updating, setUpdating]           = useState(false)
   const [updateProgress, setUpdateProgress] = useState({ current: 0, total: 0, name: '' })
@@ -45,11 +49,12 @@ export default function Dashboard() {
 
   async function loadData() {
     try {
-      const { cards: allCards, collection: col, prices: priceMap, portfolio: hist } = await fetchAllData()
+      const { cards: allCards, collection: col, prices: priceMap, portfolio: hist, offline: isOffline } = await fetchAllData()
       setCollection(col || [])
       setCards(allCards || [])
       setPrices(priceMap || {})
       setPortfolio(hist || [])
+      setOffline(!!isOffline)
       if (priceMap && Object.values(priceMap).length > 0) {
         const latest = Object.values(priceMap).sort(
           (a, b) => new Date(b.date_recorded) - new Date(a.date_recorded)
@@ -156,6 +161,8 @@ export default function Dashboard() {
       </div>
 
       <div className="px-5 space-y-6">
+
+        {offline && <OfflineBanner />}
 
         {/* ── KPI Block ──────────────────────────────────────────────────────── */}
         <div className="bg-[#16161A] border border-[#24242A] rounded-xl p-5">
