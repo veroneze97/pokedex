@@ -13,7 +13,8 @@
   --font-sans: 'Inter', system-ui, sans-serif;
 }
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* Sem reset manual aqui: o preflight do Tailwind v4 já zera margens/padding.
+   Um reset fora de @layer sobrepõe TODAS as utilities (p-*, m-*) por regra de cascade. */
 
 html, body, #root {
   height: 100%;
