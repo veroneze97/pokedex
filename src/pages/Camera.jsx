@@ -23,6 +23,7 @@ export default function Camera() {
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState(null)
   const [camState, setCamState] = useState('idle') // idle | starting | active | error
+  const [paidInput, setPaidInput] = useState('')
 
   useEffect(() => {
     if (state !== S.PREVIEW) stopCamera()
@@ -134,6 +135,7 @@ export default function Camera() {
         name: identified.name,
         rarity: tcgCard?.rarity || identified.rarity,
         imageUrl: tcgCard?.images?.large || tcgCard?.images?.small || '',
+        purchasePrice: paidInput.trim() || undefined,
       })
 
       if (price?.price && result.cardId) {
@@ -144,6 +146,9 @@ export default function Camera() {
       reset()
       setToast({ name: cardName })
       setTimeout(() => setToast(null), 2500)
+      // Scan em lote: reabre a câmera direto para a próxima carta,
+      // sem passar pela tela "Ativar Câmera"
+      setTimeout(() => startCamera(), 300)
     } catch (e) {
       setSaving(false)
       setErrorMsg(e.message || 'Erro ao salvar carta. Tente novamente.')
@@ -160,6 +165,7 @@ export default function Camera() {
     setPrice(null)
     setErrorMsg('')
     setSaving(false)
+    setPaidInput('')
   }
 
   const showVideo = state === S.PREVIEW && camState === 'active'
@@ -328,7 +334,21 @@ export default function Camera() {
               <Row label="Número" value={identified?.number} />
               <Row label="Raridade" value={rarityLabel[tcgCard?.rarity || identified?.rarity] || identified?.rarity} />
               <Row label="Condição" value="NM" />
-              <Row label="Preço estimado" value={price?.price ? brl(price.price) : '—'} highlight={!!price?.price} last />
+              <Row label="Preço estimado" value={price?.price ? brl(price.price) : '—'} highlight={!!price?.price} />
+              <div className="flex items-center justify-between px-5" style={{ minHeight: 52 }}>
+                <span className="text-[#8E8E93] text-sm">Preço pago (opcional)</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[#8E8E93] text-sm">R$</span>
+                  <input
+                    value={paidInput}
+                    onChange={e => setPaidInput(e.target.value)}
+                    inputMode="decimal"
+                    placeholder="0,00"
+                    className="bg-transparent text-right text-[#F4F4F6] text-sm font-medium w-20 outline-none placeholder-[#8E8E93]/50"
+                    style={{ userSelect: 'text', WebkitUserSelect: 'text' }}
+                  />
+                </div>
+              </div>
             </div>
           </div>
 

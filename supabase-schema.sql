@@ -12,12 +12,16 @@ CREATE TABLE IF NOT EXISTS cards (
 
 -- Coleção do usuário
 CREATE TABLE IF NOT EXISTS collection (
-  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  card_id    TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
-  quantity   INT NOT NULL DEFAULT 1,
-  condition  TEXT NOT NULL DEFAULT 'NM',
-  date_added TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  card_id        TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+  quantity       INT NOT NULL DEFAULT 1,
+  condition      TEXT NOT NULL DEFAULT 'NM',
+  purchase_price NUMERIC(10,2),                 -- preço pago por unidade (P&L)
+  date_added     TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Migração para bancos existentes:
+-- ALTER TABLE collection ADD COLUMN IF NOT EXISTS purchase_price NUMERIC(10,2);
 
 -- Histórico de preços (nunca deletar)
 CREATE TABLE IF NOT EXISTS price_history (

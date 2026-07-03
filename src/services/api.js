@@ -32,15 +32,55 @@ export async function fetchCardDetail(id) {
   return res.json() // { card, colItem, priceHistory }
 }
 
-export async function addCardToCollection({ number, setCode, name, rarity, imageUrl }) {
+export async function addCardToCollection({ number, setCode, name, rarity, imageUrl, purchasePrice }) {
   const res = await apiFetch('/api/collection', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ number, setCode, name, rarity, imageUrl }),
+    body: JSON.stringify({ number, setCode, name, rarity, imageUrl, purchasePrice }),
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
     throw new Error(err.error || 'Erro ao salvar carta')
+  }
+  return res.json()
+}
+
+// Adição manual: a carta já existe no catálogo, basta o id
+export async function addCardById(cardId, purchasePrice) {
+  const res = await apiFetch('/api/collection', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cardId, purchasePrice }),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error || 'Erro ao adicionar carta')
+  }
+  return res.json()
+}
+
+export async function updateCollectionItem(cardId, { quantity, purchasePrice }) {
+  const res = await apiFetch('/api/collection', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cardId, quantity, purchasePrice }),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error || 'Erro ao atualizar')
+  }
+  return res.json()
+}
+
+export async function removeFromCollection(cardId) {
+  const res = await apiFetch('/api/collection', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cardId }),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error || 'Erro ao remover')
   }
   return res.json()
 }

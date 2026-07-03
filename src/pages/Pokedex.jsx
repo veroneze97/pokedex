@@ -7,6 +7,18 @@ import OfflineBanner from '../components/OfflineBanner'
 // Fallback caso o catálogo ainda não tenha carregado (130 PFLpt + 188 ME1pt)
 const TOTAL = 318
 
+const SETS = [
+  { code: 'all',   label: 'Todos' },
+  { code: 'PFLpt', label: 'Fogo Fantasmagórico' },
+  { code: 'ME1pt', label: 'Mega Evolution' },
+]
+
+const SORTS = [
+  { key: 'numero', label: 'Número' },
+  { key: 'preco',  label: 'Preço' },
+  { key: 'nome',   label: 'Nome' },
+]
+
 export default function Pokedex() {
   const [cards, setCards]           = useState([])
   const [collection, setCollection] = useState({})
@@ -14,6 +26,9 @@ export default function Pokedex() {
   const [filter, setFilter]         = useState('Todas')
   const [loading, setLoading]       = useState(true)
   const [offline, setOffline]       = useState(false)
+  const [activeSet, setActiveSet]   = useState('all')
+  const [query, setQuery]           = useState('')
+  const [sortIdx, setSortIdx]       = useState(0)
 
   useEffect(() => { loadAll() }, [])
 
@@ -33,15 +48,34 @@ export default function Pokedex() {
     }
   }
 
-  const owned    = Object.keys(collection).length
-  const missing  = cards.length - owned
-  const progress = cards.length > 0 ? (owned / cards.length) * 100 : 0
+  // Cartas do set selecionado — progresso e contagens acompanham a seleção
+  const cardsInSet = activeSet === 'all' ? cards : cards.filter(c => c.set_code === activeSet)
+  const owned    = cardsInSet.filter(c => collection[c.id]).length
+  const missing  = cardsInSet.length - owned
+  const progress = cardsInSet.length > 0 ? (owned / cardsInSet.length) * 100 : 0
 
-  const filtered = cards.filter(card => {
+  const q = query.trim().toLowerCase()
+  const sortKey = SORTS[sortIdx].key
+
+  const filtered = cardsInSet.filter(card => {
     const has = !!collection[card.id]
-    if (filter === 'Possuídas') return has
-    if (filter === 'Faltando')  return !has
+    if (filter === 'Possuídas' && !has) return false
+    if (filter === 'Faltando' && has) return false
+    if (q && !(
+      card.name?.toLowerCase().includes(q) ||
+      String(card.number || '').includes(q)
+    )) return false
     return true
+  })
+
+  const sorted = [...filtered].sort((a, b) => {
+    if (sortKey === 'preco') {
+      return (prices[b.id]?.price_brl || 0) - (prices[a.id]?.price_brl || 0)
+    }
+    if (sortKey === 'nome') {
+      return (a.name || '').localeCompare(b.name || '', 'pt-BR')
+    }
+    return Number(a.number) - Number(b.number)
   })
 
   if (loading) {
@@ -84,11 +118,29 @@ export default function Pokedex() {
 
         {offline && <OfflineBanner />}
 
+        {/* Seletor de set */}
+        <div className="flex gap-2 overflow-x-auto scroll-hide -mx-5 px-5">
+          {SETS.map(s => (
+            <button
+              key={s.code}
+              onClick={() => setActiveSet(s.code)}
+              className={`pressable flex-shrink-0 whitespace-nowrap rounded-full px-4 text-[13px] font-semibold ${
+                activeSet === s.code
+                  ? 'bg-[#F4F4F6] text-[#000000]'
+                  : 'bg-[#101014] border border-white/[0.06] text-[#8E8E93]'
+              }`}
+              style={{ minHeight: 40 }}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+
         {/* Progress block */}
         <div className="bg-[#101014] border border-white/[0.06] rounded-xl p-5">
           <div className="flex items-baseline gap-2 mb-2">
             <span className="text-[#F4F4F6] font-bold text-4xl tabular-nums">{owned}</span>
-            <span className="text-[#8E8E93] font-semibold text-2xl">/ {cards.length || TOTAL}</span>
+            <span className="text-[#8E8E93] font-semibold text-2xl">/ {cardsInSet.length || TOTAL}</span>
           </div>
           <p className="text-[#00E676] text-sm font-semibold mb-4">{progress.toFixed(0)}% completo</p>
           <div className="bg-white/[0.08] rounded-full h-[3px]">
@@ -97,6 +149,29 @@ export default function Pokedex() {
               style={{ width: `${Math.min(progress, 100)}%` }}
             />
           </div>
+        </div>
+
+        {/* Busca por nome ou número */}
+        <div className="flex items-center gap-2.5 bg-[#101014] border border-white/[0.06] rounded-xl px-4" style={{ minHeight: 48 }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-[#8E8E93] flex-shrink-0">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.35-4.35" />
+          </svg>
+          <input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Buscar por nome ou número"
+            className="flex-1 bg-transparent text-sm text-[#F4F4F6] outline-none placeholder-[#8E8E93]/60"
+            style={{ userSelect: 'text', WebkitUserSelect: 'text' }}
+          />
+          {query && (
+            <button
+              onClick={() => setQuery('')}
+              className="pressable w-6 h-6 flex items-center justify-center rounded-full bg-white/[0.08] text-[#8E8E93] text-xs flex-shrink-0"
+            >
+              ×
+            </button>
+          )}
         </div>
 
         {/* Filter tabs */}
@@ -121,19 +196,33 @@ export default function Pokedex() {
           ))}
         </div>
 
-        {/* Stats pills */}
-        <div className="flex gap-2">
-          <span className="bg-[#101014] border border-white/[0.06] rounded-full px-3 py-1.5 text-[12px] text-[#8E8E93]">
-            <span className="text-[#F4F4F6] font-bold">{owned}</span> possuídas
-          </span>
-          <span className="bg-[#101014] border border-white/[0.06] rounded-full px-3 py-1.5 text-[12px] text-[#8E8E93]">
-            <span className="text-[#F4F4F6] font-bold">{missing < 0 ? 0 : missing}</span> faltando
-          </span>
+        {/* Stats pills + ordenação */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex gap-2">
+            <span className="bg-[#101014] border border-white/[0.06] rounded-full px-3 py-1.5 text-[12px] text-[#8E8E93]">
+              <span className="text-[#F4F4F6] font-bold">{owned}</span> possuídas
+            </span>
+            <span className="bg-[#101014] border border-white/[0.06] rounded-full px-3 py-1.5 text-[12px] text-[#8E8E93]">
+              <span className="text-[#F4F4F6] font-bold">{missing < 0 ? 0 : missing}</span> faltando
+            </span>
+          </div>
+          <button
+            onClick={() => setSortIdx((sortIdx + 1) % SORTS.length)}
+            className="pressable flex items-center gap-1.5 bg-[#101014] border border-white/[0.06] rounded-full px-3 py-1.5 text-[12px] text-[#8E8E93]"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+              <path d="m3 8 4-4 4 4" />
+              <path d="M7 4v16" />
+              <path d="m21 16-4 4-4-4" />
+              <path d="M17 20V4" />
+            </svg>
+            {SORTS[sortIdx].label}
+          </button>
         </div>
 
         {/* Card grid — 2 columns */}
         <div className="grid grid-cols-2 gap-4">
-          {filtered.map((card, index) => (
+          {sorted.map((card, index) => (
             <CardTile
               key={card.id}
               card={card}
@@ -145,7 +234,7 @@ export default function Pokedex() {
           ))}
         </div>
 
-        {filtered.length === 0 && (
+        {sorted.length === 0 && (
           <p className="text-center text-[#8E8E93] py-12 text-sm">Nenhuma carta encontrada</p>
         )}
 

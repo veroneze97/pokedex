@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { fetchCardDetail } from '../services/api'
+import { fetchCardDetail, addCardById, updateCollectionItem, removeFromCollection } from '../services/api'
 import { brl, rarityLabel, formatDate, diffLabel } from '../utils/format'
 import PriceChart from '../components/PriceChart'
 import PokeballLoader from '../components/PokeballLoader'
@@ -18,6 +18,9 @@ export default function CardDetail() {
   const [tab, setTab]                 = useState('RAW')
   const [period, setPeriod]           = useState('MAX')
   const [tilt, setTilt]               = useState({ x: 0, y: 0 })
+  const [busy, setBusy]               = useState(false)
+  const [confirmRemove, setConfirmRemove] = useState(false)
+  const [paidInput, setPaidInput]     = useState('')
 
   function handleTilt(e) {
     const r = e.currentTarget.getBoundingClientRect()
@@ -35,11 +38,57 @@ export default function CardDetail() {
       setCard(cardData)
       setColItem(colData)
       setPriceHistory(hist || [])
+      setPaidInput(
+        colData?.purchase_price != null ? String(colData.purchase_price).replace('.', ',') : ''
+      )
     } catch (e) {
       console.error(e)
     } finally {
       setLoading(false)
     }
+  }
+
+  // ── Ações de coleção ──────────────────────────────────────────────────────
+  async function changeQty(delta) {
+    if (!colItem || busy) return
+    const q = colItem.quantity + delta
+    if (q < 1) return
+    setBusy(true)
+    try {
+      const { item } = await updateCollectionItem(id, { quantity: q })
+      setColItem(item)
+    } catch (e) { console.error(e) } finally { setBusy(false) }
+  }
+
+  async function savePaid() {
+    if (!colItem) return
+    const raw = paidInput.trim()
+    const current = colItem.purchase_price != null ? String(colItem.purchase_price).replace('.', ',') : ''
+    if (raw === current) return
+    setBusy(true)
+    try {
+      const { item } = await updateCollectionItem(id, { purchasePrice: raw === '' ? null : raw })
+      setColItem(item)
+    } catch (e) { console.error(e) } finally { setBusy(false) }
+  }
+
+  async function handleRemove() {
+    setBusy(true)
+    try {
+      await removeFromCollection(id)
+      setColItem(null)
+      setPriceHistory([])
+      setConfirmRemove(false)
+      setPaidInput('')
+    } catch (e) { console.error(e) } finally { setBusy(false) }
+  }
+
+  async function handleManualAdd() {
+    setBusy(true)
+    try {
+      await addCardById(id)
+      await loadCard()
+    } catch (e) { console.error(e) } finally { setBusy(false) }
   }
 
   const filteredHistory = useMemo(() => {
@@ -76,6 +125,12 @@ export default function CardDetail() {
   const isUltra     = card.rarity?.includes('Ultra') || card.rarity?.includes('Special') || card.rarity?.includes('Hyper') || card.rarity?.includes('Mega')
 
   const chartHistory = filteredHistory.length > 1 ? filteredHistory : priceHistory
+
+  // P&L da carta (preço pago vs valor de mercado)
+  const paid       = colItem?.purchase_price || 0
+  const cardPnl    = paid > 0 && latestPrice > 0 ? (latestPrice - paid) * colItem.quantity : null
+  const cardPnlPct = paid > 0 && latestPrice > 0 ? ((latestPrice - paid) / paid) * 100 : 0
+  const ligaUrl    = `https://www.ligapokemon.com.br/?view=cards/search&card=${encodeURIComponent(card.name)}`
 
   return (
     <div className="min-h-full bg-[#000000] pb-32">
@@ -255,30 +310,126 @@ export default function CardDetail() {
               }
             </div>
 
-            {/* Collection stats */}
+            {/* ── Minha coleção: quantidade, preço pago, P&L ─────────────────── */}
             {colItem && (
-              <div className="bg-[#101014] border border-white/[0.06] rounded-xl flex divide-x divide-white/[0.06]">
-                <div className="flex-1 flex flex-col items-center py-5 gap-1">
-                  <p className="text-[#F4F4F6] text-xl font-bold tabular-nums">{colItem.quantity}×</p>
-                  <p className="text-[#8E8E93] text-[10px] font-medium uppercase tracking-wider">Quantidade</p>
+              <div className="bg-[#101014] border border-white/[0.06] rounded-xl overflow-hidden">
+                <div className="flex items-center justify-between px-5 border-b border-white/[0.06]" style={{ minHeight: 64 }}>
+                  <p className="text-[#8E8E93] text-sm">Quantidade</p>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => changeQty(-1)}
+                      disabled={busy || colItem.quantity <= 1}
+                      className="pressable w-9 h-9 rounded-lg bg-white/[0.08] text-[#F4F4F6] text-lg font-semibold disabled:opacity-30 flex items-center justify-center"
+                    >
+                      −
+                    </button>
+                    <p className="text-[#F4F4F6] text-sm font-bold tabular-nums w-8 text-center">
+                      {colItem.quantity}×
+                    </p>
+                    <button
+                      onClick={() => changeQty(1)}
+                      disabled={busy}
+                      className="pressable w-9 h-9 rounded-lg bg-white/[0.08] text-[#F4F4F6] text-lg font-semibold disabled:opacity-30 flex items-center justify-center"
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
-                <div className="flex-1 flex flex-col items-center py-5 gap-1">
-                  <p className="text-[#F4F4F6] text-[17px] font-bold tabular-nums">
+
+                <div className="flex items-center justify-between px-5 border-b border-white/[0.06]" style={{ minHeight: 64 }}>
+                  <p className="text-[#8E8E93] text-sm">Preço pago (un.)</p>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[#8E8E93] text-sm">R$</span>
+                    <input
+                      value={paidInput}
+                      onChange={e => setPaidInput(e.target.value)}
+                      onBlur={savePaid}
+                      inputMode="decimal"
+                      placeholder="0,00"
+                      className="bg-transparent text-right text-[#F4F4F6] text-sm font-medium w-20 outline-none placeholder-[#8E8E93]/50"
+                      style={{ userSelect: 'text', WebkitUserSelect: 'text' }}
+                    />
+                  </div>
+                </div>
+
+                <div className={`flex items-center justify-between px-5 ${cardPnl !== null ? 'border-b border-white/[0.06]' : ''}`} style={{ minHeight: 64 }}>
+                  <p className="text-[#8E8E93] text-sm">Valor total ({colItem.quantity}×)</p>
+                  <p className="text-[#F4F4F6] text-sm font-bold tabular-nums">
                     {latestPrice > 0 ? brl(latestPrice * colItem.quantity) : '—'}
                   </p>
-                  <p className="text-[#8E8E93] text-[10px] font-medium uppercase tracking-wider">Valor Total</p>
                 </div>
+
+                {cardPnl !== null && (
+                  <div className="flex items-center justify-between px-5" style={{ minHeight: 64 }}>
+                    <p className="text-[#8E8E93] text-sm">Resultado</p>
+                    <p className={`text-sm font-bold tabular-nums ${cardPnl >= 0 ? 'text-[#00E676]' : 'text-[#FF3B30]'}`}>
+                      {cardPnl >= 0 ? '+' : ''}{brl(cardPnl)} ({cardPnlPct >= 0 ? '+' : ''}{cardPnlPct.toFixed(1)}%)
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Not owned CTA */}
+            {/* Liga Pokémon — preço do mercado BR */}
+            <a
+              href={ligaUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="pressable flex items-center justify-between bg-[#101014] border border-white/[0.06] rounded-xl px-5"
+              style={{ minHeight: 56 }}
+            >
+              <span className="text-[#F4F4F6] text-sm font-medium">Ver preços na Liga Pokémon</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-[#8E8E93]">
+                <path d="M7 17 17 7" />
+                <path d="M7 7h10v10" />
+              </svg>
+            </a>
+
+            {/* Remover da coleção */}
+            {colItem && (
+              confirmRemove ? (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setConfirmRemove(false)}
+                    className="pressable flex-1 h-12 rounded-xl border border-white/[0.06] text-[#8E8E93] text-sm font-medium"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleRemove}
+                    disabled={busy}
+                    className="pressable flex-1 h-12 rounded-xl bg-[#FF3B30] text-white text-sm font-semibold disabled:opacity-50"
+                  >
+                    Confirmar remoção
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setConfirmRemove(true)}
+                  className="pressable w-full h-12 rounded-xl border border-[#FF3B30]/25 text-[#FF3B30] text-sm font-medium"
+                >
+                  Remover da coleção
+                </button>
+              )
+            )}
+
+            {/* Não possuída: adicionar manualmente ou escanear */}
             {!colItem && (
-              <button
-                onClick={() => navigate('/camera', { viewTransition: true })}
-                className="pressable w-full h-14 flex items-center justify-center bg-[#F4F4F6] text-[#000000] font-semibold text-sm rounded-xl"
-              >
-                Adicionar via Câmera
-              </button>
+              <div className="space-y-3">
+                <button
+                  onClick={handleManualAdd}
+                  disabled={busy}
+                  className="pressable w-full h-14 flex items-center justify-center bg-[#F4F4F6] text-[#000000] font-semibold text-sm rounded-xl disabled:opacity-50"
+                >
+                  {busy ? 'Adicionando...' : 'Adicionar à Coleção'}
+                </button>
+                <button
+                  onClick={() => navigate('/camera', { viewTransition: true })}
+                  className="pressable w-full h-12 flex items-center justify-center border border-white/[0.06] text-[#8E8E93] font-medium text-sm rounded-xl"
+                >
+                  Escanear com Câmera
+                </button>
+              </div>
             )}
           </>
         ) : (

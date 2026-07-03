@@ -18,23 +18,38 @@ export default async function handler(req, res) {
     return res.json(data)
   }
 
-  if (method === 'POST') {
-    if (!checkAuth(req, res)) return
-    const { number, setCode, name, rarity, imageUrl } = req.body
+  if (method === 'POST')   return handlePost(req, res)
+  if (method === 'PATCH')  return handlePatch(req, res)
+  if (method === 'DELETE') return handleDelete(req, res)
 
-    // Determine canonical ID prefix by setCode
+  res.status(405).json({ error: 'Method not allowed' })
+}
+
+// ── POST: adicionar carta (via câmera ou manualmente por cardId) ────────────
+async function handlePost(req, res) {
+  if (!checkAuth(req, res)) return
+  const { number, setCode, name, rarity, imageUrl, cardId, purchasePrice } = req.body
+
+  let card = null
+
+  if (cardId) {
+    // Adição manual: a carta já existe no catálogo
+    const { data } = await supabase.from('cards').select('*').eq('id', cardId).maybeSingle()
+    if (!data) return res.status(404).json({ error: 'Carta não encontrada no catálogo' })
+    card = data
+  } else {
+    // Fluxo da câmera: encontrar ou criar a carta
     const idPrefix = setCode === 'ME1pt' ? 'me1' : 'pfl'
 
-    // Find card
-    let { data: card } = await supabase
+    const { data: found } = await supabase
       .from('cards')
       .select('*')
       .eq('number', number)
       .eq('set_code', setCode)
       .maybeSingle()
+    card = found
 
     if (!card) {
-      // Try to find by canonical ID regardless of set_code (handles set_code mismatches)
       const canonicalId = `${idPrefix}-${number}`
       const { data: byId } = await supabase
         .from('cards')
@@ -44,12 +59,10 @@ export default async function handler(req, res) {
 
       if (byId) {
         card = byId
-        // Update set_code to canonical if wrong, but keep existing name/image
         if (byId.set_code !== setCode) {
           await supabase.from('cards').update({ set_code: setCode }).eq('id', canonicalId)
         }
       } else {
-        // Insert new card — only if imageUrl is non-empty, otherwise leave blank to preserve future updates
         const { data: inserted, error: ie } = await supabase
           .from('cards')
           .insert({
@@ -67,7 +80,6 @@ export default async function handler(req, res) {
         card = inserted
       }
     } else {
-      // Card found — update only fields that were empty/missing, never overwrite good data with empty
       const updates = {}
       if (!card.image_url && imageUrl) updates.image_url = imageUrl
       if (!card.rarity && rarity) updates.rarity = rarity
@@ -75,30 +87,87 @@ export default async function handler(req, res) {
         await supabase.from('cards').update(updates).eq('id', card.id)
       }
     }
-
-    // Upsert collection
-    const { data: existing } = await supabase
-      .from('collection')
-      .select('*')
-      .eq('card_id', card.id)
-      .maybeSingle()
-
-    if (existing) {
-      await supabase
-        .from('collection')
-        .update({ quantity: existing.quantity + 1 })
-        .eq('id', existing.id)
-    } else {
-      await supabase
-        .from('collection')
-        .insert({ card_id: card.id, quantity: 1, condition: 'NM', date_added: new Date().toISOString() })
-    }
-
-    // Snapshot do portfólio — falha não bloqueia o salvamento da carta
-    try { await recordPortfolioSnapshot(supabase) } catch (e) { console.warn(e.message) }
-
-    return res.json({ success: true, cardId: card.id })
   }
 
-  res.status(405).json({ error: 'Method not allowed' })
+  // Upsert na coleção
+  const { data: existing } = await supabase
+    .from('collection')
+    .select('*')
+    .eq('card_id', card.id)
+    .maybeSingle()
+
+  const price = normalizePrice(purchasePrice)
+
+  if (existing) {
+    const updates = { quantity: existing.quantity + 1 }
+    if (price != null) updates.purchase_price = price
+    await supabase.from('collection').update(updates).eq('id', existing.id)
+  } else {
+    await supabase.from('collection').insert({
+      card_id: card.id,
+      quantity: 1,
+      condition: 'NM',
+      purchase_price: price,
+      date_added: new Date().toISOString(),
+    })
+  }
+
+  // Snapshot do portfólio — falha não bloqueia o salvamento da carta
+  try { await recordPortfolioSnapshot(supabase) } catch (e) { console.warn(e.message) }
+
+  return res.json({ success: true, cardId: card.id })
+}
+
+// ── PATCH: editar quantidade / preço pago ───────────────────────────────────
+async function handlePatch(req, res) {
+  if (!checkAuth(req, res)) return
+  const { cardId, quantity, purchasePrice } = req.body
+  if (!cardId) return res.status(400).json({ error: 'cardId obrigatório' })
+
+  const updates = {}
+  if (quantity !== undefined) {
+    const q = parseInt(quantity, 10)
+    if (!Number.isFinite(q) || q < 1) return res.status(400).json({ error: 'Quantidade inválida' })
+    updates.quantity = q
+  }
+  if (purchasePrice !== undefined) {
+    // null explícito limpa o preço pago
+    updates.purchase_price = purchasePrice === null ? null : normalizePrice(purchasePrice)
+  }
+  if (Object.keys(updates).length === 0) {
+    return res.status(400).json({ error: 'Nada para atualizar' })
+  }
+
+  const { data, error } = await supabase
+    .from('collection')
+    .update(updates)
+    .eq('card_id', cardId)
+    .select()
+    .maybeSingle()
+
+  if (error) return res.status(500).json({ error: error.message })
+  if (!data) return res.status(404).json({ error: 'Carta não está na coleção' })
+
+  try { await recordPortfolioSnapshot(supabase) } catch (e) { console.warn(e.message) }
+  return res.json({ success: true, item: data })
+}
+
+// ── DELETE: remover carta da coleção ────────────────────────────────────────
+async function handleDelete(req, res) {
+  if (!checkAuth(req, res)) return
+  const { cardId } = req.body
+  if (!cardId) return res.status(400).json({ error: 'cardId obrigatório' })
+
+  const { error } = await supabase.from('collection').delete().eq('card_id', cardId)
+  if (error) return res.status(500).json({ error: error.message })
+
+  try { await recordPortfolioSnapshot(supabase) } catch (e) { console.warn(e.message) }
+  return res.json({ success: true })
+}
+
+function normalizePrice(value) {
+  if (value === undefined || value === null || value === '') return null
+  const n = typeof value === 'string' ? parseFloat(value.replace(',', '.')) : Number(value)
+  if (!Number.isFinite(n) || n < 0) return null
+  return Math.round(n * 100) / 100
 }

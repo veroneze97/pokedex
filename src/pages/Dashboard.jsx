@@ -104,6 +104,11 @@ export default function Dashboard() {
   const totalCards  = cards.length || FALLBACK_TOTAL
   const progress    = (uniqueOwned / totalCards) * 100
 
+  // P&L: total investido (cartas com preço pago) vs valor de mercado atual
+  const invested = collection.reduce((s, i) => s + (i.purchase_price || 0) * i.quantity, 0)
+  const pnl      = totalValue - invested
+  const pnlPct   = invested > 0 ? (pnl / invested) * 100 : 0
+
   // Evolução do valor total do portfólio (snapshots diários)
   const sparkData = portfolio.map(p => p.total_brl)
 
@@ -153,9 +158,20 @@ export default function Dashboard() {
           <p className="text-[#8E8E93] text-[10px] font-medium uppercase tracking-widest mb-3">
             Valor Total da Coleção
           </p>
-          <p className="text-[#F4F4F6] leading-none mb-5">
+          <p className="text-[#F4F4F6] leading-none mb-3">
             <Money value={totalValue} size={48} rolling />
           </p>
+
+          {invested > 0 && (
+            <div className="flex items-center gap-2.5 mb-4 flex-wrap">
+              <span className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${
+                pnl >= 0 ? 'bg-[#00E67614] text-[#00E676]' : 'bg-[#FF3B3014] text-[#FF3B30]'
+              }`}>
+                {pnl >= 0 ? '↑' : '↓'} {pnl >= 0 ? '+' : ''}{brl(pnl)} ({pnlPct >= 0 ? '+' : ''}{pnlPct.toFixed(1)}%)
+              </span>
+              <span className="text-[#8E8E93] text-[11px]">investido {brl(invested)}</span>
+            </div>
+          )}
 
           <InlineSparkline data={sparkData} />
 
