@@ -6,6 +6,7 @@ import { brl } from '../utils/format'
 import PokeballLoader from '../components/PokeballLoader'
 import OfflineBanner from '../components/OfflineBanner'
 import Money from '../components/Money'
+import { getTypeGlow } from '../utils/typeColors'
 
 // Fallback caso o catálogo ainda não tenha carregado (soma dos 5 sets ativos)
 const FALLBACK_TOTAL = 859
@@ -153,17 +154,26 @@ export default function Dashboard() {
 
         {offline && <OfflineBanner />}
 
-        {/* ── KPI Block ──────────────────────────────────────────────────────── */}
-        <div className="bg-[#101014] border border-white/[0.06] rounded-xl p-5">
-          <p className="text-[#8E8E93] text-[10px] font-medium uppercase tracking-widest mb-3">
+        {/* ── Hero de patrimônio — sem caixa, luz própria ──────────────────────── */}
+        <div className="relative text-center py-4 overflow-hidden">
+          <div
+            className="absolute pointer-events-none"
+            style={{
+              top: -40, left: '50%', transform: 'translateX(-50%)',
+              width: 280, height: 200,
+              background: 'radial-gradient(ellipse at 50% 30%, rgba(245,166,35,0.35), transparent 65%)',
+              filter: 'blur(30px)',
+            }}
+          />
+          <p className="relative text-[#8E8E93] text-[11px] font-medium uppercase tracking-widest mb-2">
             Valor Total da Coleção
           </p>
-          <p className="text-[#F4F4F6] leading-none mb-3">
-            <Money value={totalValue} size={48} rolling />
+          <p className="relative leading-none flex justify-center">
+            <Money value={totalValue} size={52} rolling gold />
           </p>
 
           {invested > 0 && (
-            <div className="flex items-center gap-2.5 mb-4 flex-wrap">
+            <div className="relative flex items-center justify-center gap-2.5 mt-4 mb-1 flex-wrap">
               <span className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${
                 pnl >= 0 ? 'bg-[#00E67614] text-[#00E676]' : 'bg-[#FF3B3014] text-[#FF3B30]'
               }`}>
@@ -173,10 +183,12 @@ export default function Dashboard() {
             </div>
           )}
 
-          <InlineSparkline data={sparkData} />
+          <div className="relative mt-5">
+            <InlineSparkline data={sparkData} />
+          </div>
 
           {lastUpdate && (
-            <p className="text-[#8E8E93] text-[11px] mt-3">
+            <p className="relative text-[#8E8E93] text-[11px] mt-3">
               Atualizado{' '}
               {new Date(lastUpdate).toLocaleDateString('pt-BR', {
                 day: '2-digit', month: 'short', year: 'numeric'
@@ -187,14 +199,14 @@ export default function Dashboard() {
 
         {/* ── Metrics chips — Cartas + Progresso ─────────────────────────────── */}
         <div className="flex gap-3">
-          <div className="flex-1 bg-[#101014] border border-white/[0.06] rounded-xl p-5">
+          <div className="flex-1 bg-[#101014] rounded-xl p-5">
             <p className="text-[#8E8E93] text-[10px] font-medium uppercase tracking-widest mb-2">Cartas</p>
             <p className="text-[#F4F4F6] text-[22px] font-bold tabular-nums leading-none">{uniqueOwned}</p>
             <p className="text-[#8E8E93] text-[11px] mt-1">de {totalCards}</p>
           </div>
-          <div className="flex-1 bg-[#101014] border border-white/[0.06] rounded-xl p-5">
+          <div className="flex-1 bg-[#101014] rounded-xl p-5">
             <p className="text-[#8E8E93] text-[10px] font-medium uppercase tracking-widest mb-2">Progresso</p>
-            <p className="text-[#00E676] text-[22px] font-bold tabular-nums leading-none">{progress.toFixed(1)}%</p>
+            <p className="text-[#F5A623] text-[22px] font-bold tabular-nums leading-none">{progress.toFixed(1)}%</p>
             <p className="text-[#8E8E93] text-[11px] mt-1">da coleção</p>
           </div>
         </div>
@@ -224,9 +236,10 @@ export default function Dashboard() {
                   <button
                     key={item.id}
                     onClick={() => navigate(`/card/${item.card_id}`, { viewTransition: true })}
-                    className="pressable flex-shrink-0 w-36 bg-[#101014] border border-white/[0.06] rounded-2xl overflow-hidden active:bg-[#1A1A20]"
+                    className="pressable flex-shrink-0 w-36 rounded-2xl active:opacity-90"
+                    style={getTypeGlow(item.cards?.type)}
                   >
-                    <div className="w-full" style={{ aspectRatio: '2.5/3.5' }}>
+                    <div className="relative w-full rounded-2xl overflow-hidden bg-[#101014]" style={{ aspectRatio: '2.5/3.5' }}>
                       {item.cards?.image_url && (
                         <img
                           src={item.cards.image_url}
@@ -235,12 +248,13 @@ export default function Dashboard() {
                           loading="lazy"
                         />
                       )}
+                      <div className="holo-sheen" />
                     </div>
                     <div className="p-3 text-left">
                       <p className="text-[#F4F4F6] text-[12px] font-semibold truncate leading-snug">
                         {item.cards?.name}
                       </p>
-                      <p className="text-[#00E676] text-[13px] font-bold tabular-nums mt-0.5">
+                      <p className="text-[#F5A623] text-[13px] font-bold tabular-nums mt-0.5">
                         {brl(item.price)}
                       </p>
                     </div>
@@ -286,7 +300,7 @@ export default function Dashboard() {
             </div>
             <div className="bg-white/[0.08] rounded-full h-[2px]">
               <div
-                className="bg-[#00E676] h-[2px] rounded-full transition-all duration-500"
+                className="bg-[#F5A623] h-[2px] rounded-full transition-all duration-500"
                 style={{
                   width: `${updateProgress.total
                     ? (updateProgress.current / updateProgress.total) * 100
@@ -380,8 +394,8 @@ function SparkSVG({ pts, W, H }) {
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-16" preserveAspectRatio="none">
       <defs>
         <linearGradient id="sg" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   stopColor="#00E676" stopOpacity="0.14" />
-          <stop offset="100%" stopColor="#00E676" stopOpacity="0" />
+          <stop offset="0%"   stopColor="#F5A623" stopOpacity="0.14" />
+          <stop offset="100%" stopColor="#F5A623" stopOpacity="0" />
         </linearGradient>
       </defs>
       <polygon points={`0,${H} ${pts} ${W},${H}`} fill="url(#sg)" className="spark-fill" />
@@ -390,7 +404,7 @@ function SparkSVG({ pts, W, H }) {
         pathLength="1"
         className="spark-draw"
         fill="none"
-        stroke="#00E676"
+        stroke="#F5A623"
         strokeWidth="1.5"
         strokeLinejoin="round"
         strokeLinecap="round"
