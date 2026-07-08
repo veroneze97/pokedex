@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { checkAuth } from './_auth.js'
 import { recordPortfolioSnapshot } from './_portfolio.js'
+import { getSetByCode } from './_sets.js'
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -39,7 +40,8 @@ async function handlePost(req, res) {
     card = data
   } else {
     // Fluxo da câmera: encontrar ou criar a carta
-    const idPrefix = setCode === 'ME1pt' ? 'me1' : 'pfl'
+    const setRow = await getSetByCode(supabase, setCode)
+    const idPrefix = setRow?.id_prefix || setCode.toLowerCase().replace(/[^a-z0-9]/g, '')
 
     const { data: found } = await supabase
       .from('cards')
