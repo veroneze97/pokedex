@@ -4,6 +4,7 @@
 
 const TYPE_COLORS = {
   grama: [60, 199, 120],
+  planta: [60, 199, 120], // TCGdex PT-BR usa "Planta" para o tipo Grama
   fogo: [255, 90, 64],
   agua: [56, 150, 255],
   eletrico: [240, 200, 40],
