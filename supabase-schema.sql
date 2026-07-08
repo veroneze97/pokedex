@@ -85,3 +85,9 @@ CREATE INDEX IF NOT EXISTS idx_cards_set_code ON cards(set_code);
 ALTER TABLE cards ADD CONSTRAINT cards_set_code_fkey FOREIGN KEY (set_code) REFERENCES sets(id);
 
 ALTER TABLE sets ENABLE ROW LEVEL SECURITY;
+
+-- ── Tipo Pokémon por carta (redesign visual premium) ───────────────────────
+-- Usado só para o glow de borda por tipo nos CardTiles da Coleção/Dashboard.
+-- Nullable: cartas sem tipo (ainda não populado, ou tipo fora do mapa) caem
+-- no glow dourado padrão — nunca quebra o layout.
+ALTER TABLE cards ADD COLUMN IF NOT EXISTS type TEXT;
