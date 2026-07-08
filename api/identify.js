@@ -1,10 +1,24 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { createClient } from '@supabase/supabase-js'
 import { checkAuth, rateLimit } from './_auth.js'
+import { getActiveSets } from './_sets.js'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
+)
 
 // ~6MB de base64 ≈ 4.5MB de imagem — muito acima do que uma foto de carta precisa
 const MAX_IMAGE_BASE64 = 6_000_000
+
+function buildSetRules(sets) {
+  if (sets.length === 0) return '  * se não conseguir determinar → "PFLpt"'
+  const lines = sets.map(s => `  * total = ${s.total} → "${s.id}"  (${s.name})`)
+  const fallback = sets.find(s => s.id === 'PFLpt') || sets[0]
+  lines.push(`  * se não conseguir ler o total → "${fallback.id}"`)
+  return lines.join('\n')
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
@@ -18,6 +32,9 @@ export default async function handler(req, res) {
   }
 
   try {
+    const sets = await getActiveSets(supabase)
+    const setRules = buildSetRules(sets)
+
     const response = await client.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 300,
@@ -37,9 +54,7 @@ Regras:
 - name: nome completo da carta como aparece impressa (ex: "Genesect", "Charizard ex", "Mega Signal", "Tinkatink")
 - number: número da carta no rodapé, formato "NNN/TTT" (ex: "008/094", "121/132", "096/132")
 - setCode: determine pelo total impresso após a barra no número da carta:
-  * total = 130 → "PFLpt"  (Fogo Fantasmagórico / Phantasmal Flames)
-  * total = 132 ou 188 → "ME1pt"  (Mega Evolution)
-  * se não conseguir ler o total → "PFLpt"
+${setRules}
 - rarity: raridade em inglês (ex: "Common", "Uncommon", "Rare", "Double Rare", "Ultra Rare", "Illustration Rare")
 - isValidPTBR: true se a carta estiver em português
 
