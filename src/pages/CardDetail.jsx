@@ -232,29 +232,6 @@ export default function CardDetail() {
 
       <div className="px-5 pt-6 space-y-4">
 
-        {/* ── Card identity ───────────────────────────────────────────────────── */}
-        <div>
-          <h2 className="text-[#F4F4F6] text-[22px] font-bold leading-snug">{card.name}</h2>
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5">
-            <span className="text-[#8E8E93] text-sm">{card.set_name || card.set_code}</span>
-            {card.number && (
-              <>
-                <span className="text-white/15">·</span>
-                <span className="text-[#8E8E93] text-sm">#{card.number}</span>
-              </>
-            )}
-            {card.rarity && (
-              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-                isUltra
-                  ? 'bg-[#241800] text-[#FFB800]'
-                  : 'bg-[#101014] border border-white/[0.06] text-[#8E8E93]'
-              }`}>
-                {rarityLabel[card.rarity] || card.rarity}
-              </span>
-            )}
-          </div>
-        </div>
-
         {/* ── Segmented control (iOS-style) ─────────────────────────────────── */}
         <div className="flex bg-[#101014] border border-white/[0.06] rounded-xl p-1 gap-1">
           {['RAW', 'GRADED', 'POP'].map(t => (
