@@ -5,3 +5,6 @@ dist/
 .DS_Store
 .vercel
 node_modules
+.agents/
+.claude/skills/
+skills-lock.json
