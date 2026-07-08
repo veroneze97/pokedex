@@ -135,71 +135,99 @@ export default function CardDetail() {
   return (
     <div className="min-h-full bg-[#000000] pb-32">
 
-      {/* ── Header sticky com blur ao rolar ────────────────────────────────── */}
+      {/* ── Palco de revelação: a carta respira sozinha, luz direcional de cima ──
+          Sem header/barra fixa aqui — só o botão de voltar flutuante, como nos
+          mockups validados. Dados (preço, gráfico, ficha) ficam abaixo, ao rolar. */}
       <div
-        className="safe-top sticky top-0 z-40 flex items-center justify-between px-5 pt-3 pb-2"
-        style={{
-          background: 'rgba(0, 0, 0, 0.8)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-        }}
+        className="safe-top relative flex flex-col items-center justify-end overflow-hidden"
+        style={{ height: '58vh', paddingBottom: 28 }}
       >
+        {/* Spotlight: luz direcional vinda de cima, não glow difuso uniforme */}
+        <div
+          className="absolute pointer-events-none"
+          style={{
+            top: -140, left: '50%', transform: 'translateX(-50%)',
+            width: 520, height: 420,
+            background: 'conic-gradient(from 200deg at 50% 0%, transparent 0deg, rgba(245,166,35,0.22) 35deg, rgba(245,166,35,0.5) 90deg, rgba(245,166,35,0.22) 145deg, transparent 180deg)',
+            filter: 'blur(50px)',
+            opacity: 0.9,
+          }}
+        />
+        {/* Glow no "chão", sob a carta */}
+        <div
+          className="absolute pointer-events-none"
+          style={{
+            bottom: 90, left: '50%', transform: 'translateX(-50%)',
+            width: 200, height: 56,
+            background: 'radial-gradient(ellipse, rgba(245,166,35,0.4), transparent 70%)',
+            filter: 'blur(18px)',
+          }}
+        />
+
         <button
           onClick={() => navigate(-1)}
-          className="pressable w-11 h-11 flex items-center justify-center bg-[#101014] border border-white/[0.06] rounded-xl text-[#F4F4F6]"
-          style={{ minWidth: 44, minHeight: 44 }}
+          className="pressable absolute top-4 left-4 z-10 flex items-center justify-center rounded-full text-[#F4F4F6]"
+          style={{
+            width: 44, height: 44,
+            background: 'rgba(20,20,20,0.5)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+          }}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
             <path d="m12 19-7-7 7-7" />
             <path d="M19 12H5" />
           </svg>
         </button>
-        <h1 className="text-[#F4F4F6] text-sm font-semibold">Detalhes da Carta</h1>
-        <button
-          className="pressable w-11 h-11 flex items-center justify-center bg-[#101014] border border-white/[0.06] rounded-xl text-[#8E8E93]"
-          style={{ minWidth: 44, minHeight: 44 }}
-        >
-          <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-            <circle cx="5" cy="12" r="1.6" />
-            <circle cx="12" cy="12" r="1.6" />
-            <circle cx="19" cy="12" r="1.6" />
-          </svg>
-        </button>
-      </div>
 
-      {/* ── Card image — 46vh, glow ambiente + tilt 3D ─────────────────────── */}
-      <div
-        className="relative flex justify-center items-center overflow-hidden"
-        style={{ height: '46vh', paddingLeft: 28, paddingRight: 28 }}
-      >
-        {/* Glow ambiente: a própria carta desfocada "ilumina" a tela */}
-        <img
-          src={card.image_url}
-          alt=""
-          aria-hidden
-          className="absolute inset-0 w-full h-full object-contain pointer-events-none"
-          style={{ filter: 'blur(60px) saturate(1.5)', opacity: 0.35, transform: 'scale(1.15)' }}
-        />
         <img
           src={card.image_url}
           alt={card.name}
-          className="relative h-full w-auto object-contain rounded-xl"
+          className="relative z-[2] h-full w-auto object-contain rounded-xl"
           onPointerMove={handleTilt}
           onPointerLeave={resetTilt}
           onPointerUp={resetTilt}
           onPointerCancel={resetTilt}
           style={{
-            maxWidth: '72vw',
-            zIndex: 1,
+            maxWidth: '68vw',
             // pan-y: tilt no toque sem bloquear o scroll vertical da página
             touchAction: 'pan-y',
             transform: `perspective(900px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
             transition: 'transform 0.18s ease-out',
             filter: isUltra
-              ? 'drop-shadow(0 0 20px rgba(234,179,8,0.22)) drop-shadow(0 20px 56px rgba(0,0,0,0.9))'
-              : 'drop-shadow(0 20px 56px rgba(0,0,0,0.9))',
+              ? 'drop-shadow(0 0 24px rgba(245,166,35,0.35)) drop-shadow(0 45px 80px rgba(0,0,0,0.95))'
+              : 'drop-shadow(0 0 60px rgba(245,166,35,0.18)) drop-shadow(0 45px 80px rgba(0,0,0,0.95))',
           }}
         />
+
+        {/* Identidade — nome grande e confiante, sem caixa */}
+        <div className="relative z-[2] text-center mt-6 px-8">
+          <p className="text-[#F5A623] text-[11px] font-bold uppercase tracking-widest opacity-85">
+            {(card.set_name || card.set_code || '')}{card.rarity ? ` · ${rarityLabel[card.rarity] || card.rarity}` : ''}
+          </p>
+          <h2 className="text-[#F4F4F6] text-[26px] font-extrabold tracking-tight mt-1">{card.name}</h2>
+          {latestPrice > 0 && (
+            <p className="text-[#8E8E93] text-sm mt-2">
+              Vale hoje <span className="text-[#F4F4F6] font-semibold">{brl(latestPrice)}</span>
+              {diff && (
+                <span className={diff.positive ? 'text-[#00E676]' : 'text-[#FF3B30]'}>
+                  {' '}· {diff.positive ? '↑' : '↓'} {diff.label}
+                </span>
+              )}
+            </p>
+          )}
+        </div>
+
+        {/* Indício de scroll */}
+        <div className="relative z-[2] flex flex-col items-center gap-1 mt-5 opacity-50">
+          <span className="text-[#8E8E93] text-[9px] uppercase tracking-widest">Ver detalhes</span>
+          <svg
+            viewBox="0 0 24 24" fill="none" stroke="#8E8E93" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+            className="w-3.5 h-3.5" style={{ animation: 'bob 1.6s ease-in-out infinite' }}
+          >
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </div>
       </div>
 
       <div className="px-5 pt-6 space-y-4">
@@ -246,27 +274,25 @@ export default function CardDetail() {
         {/* ── RAW tab content ────────────────────────────────────────────────── */}
         {tab === 'RAW' ? (
           <>
-            {/* Price */}
-            <div className="bg-[#101014] border border-white/[0.06] rounded-xl p-5">
+            {/* Price — solto, sem caixa, mesmo tratamento de luz do hero */}
+            <div className="text-center py-2">
               <p className="text-[#8E8E93] text-[10px] font-medium uppercase tracking-widest mb-2">
                 Preço Atual (BRL)
               </p>
-              <div className="flex items-end justify-between gap-3">
-                <p className="text-[#F4F4F6] leading-none">
-                  {latestPrice > 0
-                    ? <Money value={latestPrice} size={30} />
-                    : <span className="text-3xl font-bold">—</span>}
-                </p>
-                {diff && (
-                  <span className={`badge-pulse flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-full flex-shrink-0 ${
-                    diff.positive
-                      ? 'bg-[#00E67614] text-[#00E676]'
-                      : 'bg-[#FF3B3014] text-[#FF3B30]'
-                  }`}>
-                    {diff.positive ? '↑' : '↓'} {diff.label}
-                  </span>
-                )}
+              <div className="flex items-center justify-center">
+                {latestPrice > 0
+                  ? <Money value={latestPrice} size={36} gold />
+                  : <span className="text-3xl font-bold text-[#F4F4F6]">—</span>}
               </div>
+              {diff && (
+                <span className={`badge-pulse inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-full mt-3 ${
+                  diff.positive
+                    ? 'bg-[#00E67614] text-[#00E676]'
+                    : 'bg-[#FF3B3014] text-[#FF3B30]'
+                }`}>
+                  {diff.positive ? '↑' : '↓'} {diff.label}
+                </span>
+              )}
             </div>
 
             {/* Market history chart */}
@@ -296,18 +322,22 @@ export default function CardDetail() {
               </div>
             )}
 
-            {/* Details list */}
+            {/* Metadados — badges em grid, não lista de linhas */}
+            <div className="grid grid-cols-2 gap-2.5">
+              <MetaBadge label="Coleção" value={card.set_name || card.set_code || '—'} />
+              <MetaBadge label="Número" value={card.number ? `#${card.number}` : '—'} />
+              {card.rarity && (
+                <MetaBadge label="Raridade" value={rarityLabel[card.rarity] || card.rarity} gold={isUltra} />
+              )}
+              <MetaBadge
+                label={colItem ? 'Estado' : 'Lançamento'}
+                value={colItem ? 'Near Mint (NM)' : (card.release_date ? formatDate(card.release_date) : '—')}
+              />
+            </div>
+
             <div className="bg-[#101014] border border-white/[0.06] rounded-xl overflow-hidden">
-              <DetailRow label="Coleção"   value={card.set_name || card.set_code || '—'} />
-              <DetailRow label="Número"    value={card.number ? `#${card.number}` : '—'} />
-              <DetailRow label="Ilustrador" value={card.illustrator || '—'} />
-              {colItem
-                ? <>
-                    <DetailRow label="Estado"    value="Near Mint (NM)" />
-                    <DetailRow label="Adicionado" value={formatDate(colItem.date_added)} last />
-                  </>
-                : <DetailRow label="Lançamento" value={card.release_date ? formatDate(card.release_date) : '—'} last />
-              }
+              <DetailRow label="Ilustrador" value={card.illustrator || '—'} last={!colItem} />
+              {colItem && <DetailRow label="Adicionado" value={formatDate(colItem.date_added)} last />}
             </div>
 
             {/* ── Minha coleção: quantidade, preço pago, P&L ─────────────────── */}
@@ -419,7 +449,12 @@ export default function CardDetail() {
                 <button
                   onClick={handleManualAdd}
                   disabled={busy}
-                  className="pressable w-full h-14 flex items-center justify-center bg-[#F4F4F6] text-[#000000] font-semibold text-sm rounded-xl disabled:opacity-50"
+                  className="pressable w-full h-14 flex items-center justify-center font-semibold text-sm rounded-xl disabled:opacity-50"
+                  style={{
+                    background: 'linear-gradient(90deg, #F5A623, #E8871E)',
+                    color: '#1a0f00',
+                    boxShadow: '0 12px 30px rgba(245,166,35,0.3)',
+                  }}
                 >
                   {busy ? 'Adicionando...' : 'Adicionar à Coleção'}
                 </button>
@@ -453,6 +488,15 @@ function DetailRow({ label, value, last }) {
     >
       <p className="text-[#8E8E93] text-sm">{label}</p>
       <p className="text-[#F4F4F6] text-sm font-medium text-right max-w-[55%] truncate">{value}</p>
+    </div>
+  )
+}
+
+function MetaBadge({ label, value, gold }) {
+  return (
+    <div className="bg-[#101014] border border-white/[0.06] rounded-xl px-4 py-3">
+      <p className="text-[#8E8E93] text-[9px] font-medium uppercase tracking-widest">{label}</p>
+      <p className={`text-[13px] font-bold mt-1 truncate ${gold ? 'text-[#F5A623]' : 'text-[#F4F4F6]'}`}>{value}</p>
     </div>
   )
 }
