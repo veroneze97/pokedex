@@ -183,12 +183,17 @@ export default function CardDetail() {
         <img
           src={card.image_url}
           alt={card.name}
-          className="relative z-[2] h-full w-auto object-contain rounded-xl"
+          className="relative z-[2] w-auto object-contain rounded-xl"
           onPointerMove={handleTilt}
           onPointerLeave={resetTilt}
           onPointerUp={resetTilt}
           onPointerCancel={resetTilt}
           style={{
+            // Não usa h-full: o palco também precisa caber nome/preço/indício
+            // de scroll abaixo da carta dentro dos mesmos 58vh (overflow
+            // hidden) — h-full fazia só a imagem já ocupar 100% da altura,
+            // cortando o topo da carta pra abrir espaço pro texto embaixo.
+            height: '52%',
             maxWidth: '68vw',
             // pan-y: tilt no toque sem bloquear o scroll vertical da página
             touchAction: 'pan-y',
