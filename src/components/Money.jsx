@@ -21,18 +21,24 @@ function DigitCol({ digit }) {
 // Tipografia de dinheiro: "R$" menor e secundário, centavos reduzidos,
 // tracking fechado — o padrão dos apps financeiros premium.
 // `rolling` ativa os dígitos de odômetro (usar no KPI do Dashboard).
-export default function Money({ value, size = 32, rolling = false, className = '' }) {
+// `gold` pinta o número (não o "R$") na cor de marca, com glow — usado nos
+// momentos "hero" (patrimônio do Dashboard, preço em destaque do CardDetail).
+export default function Money({ value, size = 32, rolling = false, gold = false, className = '' }) {
   const formatted = new Intl.NumberFormat('pt-BR', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(value || 0)
   const [intPart, cents] = formatted.split(',')
 
+  const goldStyle = gold
+    ? { color: '#F5A623', textShadow: '0 0 40px rgba(245,166,35,0.35)' }
+    : {}
+
   if (!rolling) {
     return (
       <span
         className={`font-bold tabular-nums ${className}`}
-        style={{ fontSize: size, letterSpacing: '-0.02em', lineHeight: 1 }}
+        style={{ fontSize: size, letterSpacing: '-0.02em', lineHeight: 1, ...goldStyle }}
       >
         <span
           className="font-semibold text-[#8E8E93]"
@@ -55,6 +61,7 @@ export default function Money({ value, size = 32, rolling = false, className = '
         lineHeight: 1,
         display: 'inline-flex',
         alignItems: 'flex-end',
+        ...goldStyle,
       }}
     >
       <span
