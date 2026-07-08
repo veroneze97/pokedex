@@ -137,13 +137,13 @@ export default function Pokedex() {
           ))}
         </div>
 
-        {/* Progress block */}
-        <div className="bg-[#101014] border border-white/[0.06] rounded-xl p-5">
+        {/* Progress block — sem caixa, hierarquia grande→pequeno */}
+        <div className="px-1 py-2">
           <div className="flex items-baseline gap-2 mb-2">
-            <span className="text-[#F4F4F6] font-bold text-4xl tabular-nums">{owned}</span>
+            <span className="text-[#F4F4F6] font-bold text-5xl tabular-nums tracking-tight">{owned}</span>
             <span className="text-[#8E8E93] font-semibold text-2xl">/ {cardsInSet.length || TOTAL}</span>
           </div>
-          <p className="text-[#00E676] text-sm font-semibold mb-4">{progress.toFixed(0)}% completo</p>
+          <p className="text-[#F5A623] text-sm font-semibold mb-4">{progress.toFixed(0)}% completo</p>
           <div className="bg-white/[0.08] rounded-full h-[3px]">
             <div
               className="progress-bar h-[3px] rounded-full"
