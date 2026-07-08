@@ -7,8 +7,8 @@ import PokeballLoader from '../components/PokeballLoader'
 import OfflineBanner from '../components/OfflineBanner'
 import Money from '../components/Money'
 
-// Fallback caso o catálogo ainda não tenha carregado (130 PFLpt + 188 ME1pt)
-const FALLBACK_TOTAL = 318
+// Fallback caso o catálogo ainda não tenha carregado (soma dos 5 sets ativos)
+const FALLBACK_TOTAL = 859
 
 export default function Dashboard() {
   const navigate = useNavigate()
