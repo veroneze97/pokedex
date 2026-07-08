@@ -80,11 +80,15 @@ export default function BottomNav() {
               className="pressable flex flex-col items-center gap-1 -mt-6"
               style={{ minWidth: 64, minHeight: 44 }}
             >
-              <div className={`w-16 h-16 flex items-center justify-center rounded-full border-2 shadow-lg ${
-                active
-                  ? 'bg-[#F4F4F6] border-[#F4F4F6] text-[#000000]'
-                  : 'bg-[#101014] border-white/[0.06] text-[#8E8E93]'
-              }`}>
+              <div
+                className={`w-16 h-16 flex items-center justify-center rounded-full border-2 shadow-lg ${
+                  active ? 'border-transparent text-black' : 'bg-[#101014] border-white/[0.06] text-[#8E8E93]'
+                }`}
+                style={active ? {
+                  background: 'linear-gradient(135deg, #F5A623, #E8871E)',
+                  boxShadow: '0 8px 20px rgba(245,166,35,0.35)',
+                } : undefined}
+              >
                 <Icon heavy={active} />
               </div>
               <span className={`text-[9px] font-medium ${active ? 'text-[#F4F4F6]' : 'text-[#8E8E93]'}`}>
