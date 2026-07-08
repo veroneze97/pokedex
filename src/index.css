@@ -70,7 +70,7 @@ body {
 .safe-top    { padding-top: env(safe-area-inset-top, 0px); }
 
 .progress-bar {
-  background: #00E676;
+  background: #F5A623;
   transition: width 0.6s ease;
 }
 
@@ -114,4 +114,31 @@ body {
 .spark-fill {
   opacity: 0;
   animation: spark-fade 0.5s ease-out 0.85s forwards;
+}
+
+/* ── Sheen holográfico: brilho diagonal animado, usado em CardTile e no
+   palco do CardDetail. O elemento pai precisa de position:relative +
+   overflow:hidden (ou border-radius) para o brilho ficar contido. ───────── */
+@keyframes holo-sheen {
+  0%, 100% { transform: translateX(-40%) translateY(-15%) rotate(8deg); }
+  50%      { transform: translateX(40%) translateY(15%) rotate(8deg); }
+}
+.holo-sheen {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.holo-sheen::after {
+  content: '';
+  position: absolute;
+  inset: -20%;
+  background: linear-gradient(115deg, transparent 25%, rgba(255,255,255,0.35) 38%, rgba(245,166,35,0.5) 46%, transparent 60%);
+  animation: holo-sheen 4s ease-in-out infinite;
+}
+
+/* ── Indicador de scroll (palco de revelação do CardDetail) ──────────────── */
+@keyframes bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(4px); }
 }
