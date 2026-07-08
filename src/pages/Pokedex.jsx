@@ -4,14 +4,8 @@ import CardTile from '../components/CardTile'
 import PokeballLoader from '../components/PokeballLoader'
 import OfflineBanner from '../components/OfflineBanner'
 
-// Fallback caso o catálogo ainda não tenha carregado (130 PFLpt + 188 ME1pt)
-const TOTAL = 318
-
-const SETS = [
-  { code: 'all',   label: 'Todos' },
-  { code: 'PFLpt', label: 'Fogo Fantasmagórico' },
-  { code: 'ME1pt', label: 'Mega Evolution' },
-]
+// Fallback caso o catálogo ainda não tenha carregado (soma dos 5 sets ativos)
+const TOTAL = 859
 
 const SORTS = [
   { key: 'numero', label: 'Número' },
@@ -23,6 +17,7 @@ export default function Pokedex() {
   const [cards, setCards]           = useState([])
   const [collection, setCollection] = useState({})
   const [prices, setPrices]         = useState({})
+  const [setsList, setSetsList]     = useState([])
   const [filter, setFilter]         = useState('Todas')
   const [loading, setLoading]       = useState(true)
   const [offline, setOffline]       = useState(false)
@@ -34,12 +29,13 @@ export default function Pokedex() {
 
   async function loadAll() {
     try {
-      const { cards: allCards, collection: col, prices: priceMap, offline: isOffline } = await fetchAllData()
+      const { cards: allCards, collection: col, prices: priceMap, offline: isOffline, sets: setsData } = await fetchAllData()
       setCards(allCards || [])
       const map = {}
       for (const item of (col || [])) map[item.card_id] = item
       setCollection(map)
       setPrices(priceMap || {})
+      setSetsList(setsData || [])
       setOffline(!!isOffline)
     } catch (e) {
       console.error(e)
@@ -77,6 +73,11 @@ export default function Pokedex() {
     }
     return Number(a.number) - Number(b.number)
   })
+
+  const setChips = [
+    { code: 'all', label: 'Todos' },
+    ...setsList.map(s => ({ code: s.id, label: s.name })),
+  ]
 
   if (loading) {
     return (
@@ -120,7 +121,7 @@ export default function Pokedex() {
 
         {/* Seletor de set */}
         <div className="flex gap-2 overflow-x-auto scroll-hide -mx-5 px-5">
-          {SETS.map(s => (
+          {setChips.map(s => (
             <button
               key={s.code}
               onClick={() => setActiveSet(s.code)}
