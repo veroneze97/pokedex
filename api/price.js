@@ -1,6 +1,13 @@
 export const maxDuration = 30
 
+import { createClient } from '@supabase/supabase-js'
 import { checkAuth, rateLimit } from './_auth.js'
+import { getSetByCode } from './_sets.js'
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
+)
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
@@ -43,8 +50,8 @@ async function getUsdBrlRate() {
 }
 
 async function fetchTcgPrice(cardName, setCode) {
-  const setMap = { PFLpt: 'me2', pflpt: 'me2', ME2: 'me2', ME1pt: 'me1', me1pt: 'me1', ME1: 'me1' }
-  const apiSetId = setMap[setCode] || setMap[setCode?.toLowerCase()] || 'me2'
+  const setRow = await getSetByCode(supabase, setCode)
+  const apiSetId = setRow?.pokemontcg_id || 'me2'
 
   // Simplify name for search (remove accents and special chars)
   const simpleName = cardName
