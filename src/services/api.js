@@ -7,7 +7,7 @@ export async function fetchAllData() {
   try {
     const res = await apiFetch('/api/cards')
     if (!res.ok) throw new Error('Erro ao carregar dados')
-    const data = await res.json() // { cards, collection, prices, portfolio }
+    const data = await res.json() // { cards, collection, prices, portfolio, sets }
     try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)) } catch { /* storage cheio */ }
     return { ...data, offline: false }
   } catch (e) {

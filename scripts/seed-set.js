@@ -106,7 +106,7 @@ async function seed(tcgdexId) {
 
 const tcgdexId = process.argv[2]
 if (!tcgdexId) {
-  console.error('Uso: node --env-file=.env scripts/seed-set.js <tcgdex_id>')
+  console.error('Uso: node --experimental-websocket --env-file=.env scripts/seed-set.js <tcgdex_id>')
   console.error('Sets disponíveis:', Object.keys(ID_PREFIX_BY_SET).join(', '))
   process.exit(1)
 }

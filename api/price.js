@@ -51,7 +51,8 @@ async function getUsdBrlRate() {
 
 async function fetchTcgPrice(cardName, setCode) {
   const setRow = await getSetByCode(supabase, setCode)
-  const apiSetId = setRow?.pokemontcg_id || 'me2'
+  if (!setRow?.pokemontcg_id) return null
+  const apiSetId = setRow.pokemontcg_id
 
   // Simplify name for search (remove accents and special chars)
   const simpleName = cardName

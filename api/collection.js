@@ -41,7 +41,8 @@ async function handlePost(req, res) {
   } else {
     // Fluxo da câmera: encontrar ou criar a carta
     const setRow = await getSetByCode(supabase, setCode)
-    const idPrefix = setRow?.id_prefix || setCode.toLowerCase().replace(/[^a-z0-9]/g, '')
+    if (!setRow) return res.status(400).json({ error: `Set desconhecido: ${setCode}` })
+    const idPrefix = setRow.id_prefix
 
     const { data: found } = await supabase
       .from('cards')
