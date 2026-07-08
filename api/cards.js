@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { getActiveSets } from './_sets.js'
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -8,10 +9,13 @@ const supabase = createClient(
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' })
 
+  const sets = await getActiveSets(supabase)
+  const setIds = sets.map(s => s.id)
+
   const { data: cards, error: ce } = await supabase
     .from('cards')
     .select('*')
-    .in('set_code', ['PFLpt', 'ME1pt'])
+    .in('set_code', setIds)
     .order('number')
 
   if (ce) return res.status(500).json({ error: ce.message })
@@ -22,7 +26,7 @@ export default async function handler(req, res) {
 
   if (cole) return res.status(500).json({ error: cole.message })
 
-  // Include any collection cards not already in the PFLpt cards list
+  // Include any collection cards not already in the active sets list
   const cardIds = new Set(cards.map(c => c.id))
   for (const item of (collection || [])) {
     if (item.cards && !cardIds.has(item.cards.id)) {
@@ -48,5 +52,5 @@ export default async function handler(req, res) {
     .order('snapshot_date', { ascending: true })
     .limit(180)
 
-  res.json({ cards, collection, prices: priceMap, portfolio: portfolio || [] })
+  res.json({ cards, collection, prices: priceMap, portfolio: portfolio || [], sets })
 }
