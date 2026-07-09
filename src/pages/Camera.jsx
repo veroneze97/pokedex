@@ -10,12 +10,25 @@ import PokeballLoader from '../components/PokeballLoader'
 
 const S = { PREVIEW: 'preview', PROCESSING: 'processing', CONFIRM: 'confirm', ERROR: 'error' }
 
+// Auto-captura: analisa frames em miniatura e dispara quando a cena
+// estabiliza APÓS movimento (evita re-capturar a mesma carta parada).
+const SAMPLE_SIZE = 32          // lado do canvas de análise (px)
+const SAMPLE_INTERVAL = 180     // ms entre amostras
+const MOTION_THRESHOLD = 7      // diff médio de luminância (0-255) que conta como movimento
+const STABLE_DURATION = 900     // ms de estabilidade para disparar a captura
+const STARTUP_GRACE = 600       // ms ignorados após a câmera ativar (autofoco)
+
 export default function Camera() {
   const navigate = useNavigate()
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
   const streamRef = useRef(null)
   const scanIdRef = useRef(0)
+  const analysisCanvasRef = useRef(null)   // canvas em memória — nunca o de captura
+  const prevSampleRef = useRef(null)
+  const motionSeenRef = useRef(false)
+  const stableStartRef = useRef(null)
+  const activatedAtRef = useRef(0)
   const [state, setState] = useState(S.PREVIEW)
   const [capturedImage, setCapturedImage] = useState(null)
   const [identified, setIdentified] = useState(null)
@@ -26,6 +39,8 @@ export default function Camera() {
   const [toast, setToast] = useState(null)
   const [camState, setCamState] = useState('idle') // idle | starting | active | error
   const [paidInput, setPaidInput] = useState('')
+  const [lockProgress, setLockProgress] = useState(0) // 0..1 durante a estabilização
+  const [flash, setFlash] = useState(false)
 
   useEffect(() => {
     if (state !== S.PREVIEW) stopCamera()
@@ -56,6 +71,12 @@ export default function Camera() {
       })
 
       await video.play()
+      // Reseta a detecção a cada (re)abertura: exige movimento antes de armar
+      prevSampleRef.current = null
+      motionSeenRef.current = false
+      stableStartRef.current = null
+      activatedAtRef.current = Date.now()
+      setLockProgress(0)
       setCamState('active')
     } catch (e) {
       console.warn('Camera error:', e)
@@ -97,10 +118,63 @@ export default function Camera() {
     }
 
     stopCamera()
+    setFlash(true)
+    setTimeout(() => setFlash(false), 150)
     setCapturedImage(dataUrl)
     setState(S.PROCESSING)
     processImage(base64)
   }, [])
+
+  // ── Loop de auto-captura: movimento → estabilização → captura ────────────
+  useEffect(() => {
+    if (state !== S.PREVIEW || camState !== 'active') return
+
+    const interval = setInterval(() => {
+      const video = videoRef.current
+      if (!video || !video.videoWidth) return
+      if (Date.now() - activatedAtRef.current < STARTUP_GRACE) return
+
+      if (!analysisCanvasRef.current) {
+        analysisCanvasRef.current = document.createElement('canvas')
+        analysisCanvasRef.current.width = SAMPLE_SIZE
+        analysisCanvasRef.current.height = SAMPLE_SIZE
+      }
+      const ctx = analysisCanvasRef.current.getContext('2d', { willReadFrequently: true })
+      ctx.drawImage(video, 0, 0, SAMPLE_SIZE, SAMPLE_SIZE)
+      const { data } = ctx.getImageData(0, 0, SAMPLE_SIZE, SAMPLE_SIZE)
+
+      const sample = new Float32Array(SAMPLE_SIZE * SAMPLE_SIZE)
+      for (let i = 0; i < sample.length; i++) {
+        const o = i * 4
+        sample[i] = 0.299 * data[o] + 0.587 * data[o + 1] + 0.114 * data[o + 2]
+      }
+
+      const prev = prevSampleRef.current
+      prevSampleRef.current = sample
+      if (!prev) return
+
+      let diff = 0
+      for (let i = 0; i < sample.length; i++) diff += Math.abs(sample[i] - prev[i])
+      diff /= sample.length
+
+      if (diff > MOTION_THRESHOLD) {
+        // Cena mudou: arma a auto-captura e zera qualquer contagem em curso
+        motionSeenRef.current = true
+        stableStartRef.current = null
+        setLockProgress(0)
+        return
+      }
+
+      // Estável — só conta se já houve movimento desde a abertura da câmera
+      if (!motionSeenRef.current) return
+      if (!stableStartRef.current) stableStartRef.current = Date.now()
+      const progress = Math.min(1, (Date.now() - stableStartRef.current) / STABLE_DURATION)
+      setLockProgress(progress)
+      if (progress >= 1) captureFrame()
+    }, SAMPLE_INTERVAL)
+
+    return () => clearInterval(interval)
+  }, [state, camState, captureFrame])
 
   async function processImage(base64) {
     const scanId = ++scanIdRef.current
@@ -159,7 +233,7 @@ export default function Camera() {
       setTimeout(() => setToast(null), 2500)
       // Scan em lote: reabre a câmera direto para a próxima carta,
       // sem passar pela tela "Ativar Câmera"
-      setTimeout(() => startCamera(), 300)
+      setTimeout(() => startCamera(), 150)
     } catch (e) {
       setSaving(false)
       setErrorMsg(e.message || 'Erro ao salvar carta. Tente novamente.')
@@ -178,6 +252,8 @@ export default function Camera() {
     setErrorMsg('')
     setSaving(false)
     setPaidInput('')
+    setLockProgress(0)
+    setFlash(false)
   }
 
   const showVideo = state === S.PREVIEW && camState === 'active'
@@ -187,6 +263,10 @@ export default function Camera() {
 
       {/* Canvas oculto para captura */}
       <canvas ref={canvasRef} className="hidden" />
+
+      {/* Flash de obturador na captura */}
+      {flash && <div className="absolute inset-0 z-40 bg-white pointer-events-none" style={{ animation: 'camFlash 150ms ease-out forwards' }} />}
+      <style>{'@keyframes camFlash { from { opacity: 0.85 } to { opacity: 0 } }'}</style>
 
       {/*
         Vídeo SEMPRE no DOM enquanto em PREVIEW para que videoRef.current
@@ -276,17 +356,32 @@ export default function Camera() {
           {/* Overlay sobre o vídeo (moldura + botão captura) */}
           {camState === 'active' && (
             <>
-              {/* Moldura guia — absolute sobre o vídeo */}
+              {/* Moldura guia — absolute sobre o vídeo. Cantos brancos →
+                  dourados com glow crescente durante a estabilização */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
                 <div className="relative w-56 h-80">
-                  <div className="absolute top-0 left-0 w-8 h-8 border-[#F4F4F6]" style={{borderTopWidth:2.5,borderLeftWidth:2.5,borderRadius:'6px 0 0 0'}} />
-                  <div className="absolute top-0 right-0 w-8 h-8 border-[#F4F4F6]" style={{borderTopWidth:2.5,borderRightWidth:2.5,borderRadius:'0 6px 0 0'}} />
-                  <div className="absolute bottom-0 left-0 w-8 h-8 border-[#F4F4F6]" style={{borderBottomWidth:2.5,borderLeftWidth:2.5,borderRadius:'0 0 0 6px'}} />
-                  <div className="absolute bottom-0 right-0 w-8 h-8 border-[#F4F4F6]" style={{borderBottomWidth:2.5,borderRightWidth:2.5,borderRadius:'0 0 6px 0'}} />
+                  {[
+                    { pos: 'top-0 left-0', style: { borderTopWidth: 2.5, borderLeftWidth: 2.5, borderRadius: '6px 0 0 0' } },
+                    { pos: 'top-0 right-0', style: { borderTopWidth: 2.5, borderRightWidth: 2.5, borderRadius: '0 6px 0 0' } },
+                    { pos: 'bottom-0 left-0', style: { borderBottomWidth: 2.5, borderLeftWidth: 2.5, borderRadius: '0 0 0 6px' } },
+                    { pos: 'bottom-0 right-0', style: { borderBottomWidth: 2.5, borderRightWidth: 2.5, borderRadius: '0 0 6px 0' } },
+                  ].map((c, i) => (
+                    <div
+                      key={i}
+                      className={`absolute ${c.pos} w-8 h-8 transition-colors duration-200`}
+                      style={{
+                        ...c.style,
+                        borderColor: lockProgress > 0 ? '#F5A623' : '#F4F4F6',
+                        filter: lockProgress > 0 ? `drop-shadow(0 0 ${6 * lockProgress}px rgba(245,166,35,${0.8 * lockProgress}))` : 'none',
+                      }}
+                    />
+                  ))}
                 </div>
               </div>
-              <p className="absolute bottom-28 left-0 right-0 text-center text-[#F4F4F6]/70 text-sm z-10 pointer-events-none">
-                Centralize a carta na moldura
+              <p className={`absolute bottom-28 left-0 right-0 text-center text-sm z-10 pointer-events-none transition-colors duration-200 ${
+                lockProgress > 0 ? 'text-[#F5A623]' : 'text-[#F4F4F6]/70'
+              }`}>
+                {lockProgress > 0 ? 'Segure firme…' : 'Centralize a carta na moldura'}
               </p>
 
               {/* Botão captura na parte de baixo */}
