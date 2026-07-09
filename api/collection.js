@@ -104,15 +104,17 @@ async function handlePost(req, res) {
   if (existing) {
     const updates = { quantity: existing.quantity + 1 }
     if (price != null) updates.purchase_price = price
-    await supabase.from('collection').update(updates).eq('id', existing.id)
+    const { error: ue } = await supabase.from('collection').update(updates).eq('id', existing.id)
+    if (ue) return res.status(500).json({ error: ue.message })
   } else {
-    await supabase.from('collection').insert({
+    const { error: ce } = await supabase.from('collection').insert({
       card_id: card.id,
       quantity: 1,
       condition: 'NM',
       purchase_price: price,
       date_added: new Date().toISOString(),
     })
+    if (ce) return res.status(500).json({ error: ce.message })
   }
 
   // Snapshot do portfólio — falha não bloqueia o salvamento da carta

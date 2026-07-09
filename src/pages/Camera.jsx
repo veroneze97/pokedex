@@ -15,6 +15,7 @@ export default function Camera() {
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
   const streamRef = useRef(null)
+  const scanIdRef = useRef(0)
   const [state, setState] = useState(S.PREVIEW)
   const [capturedImage, setCapturedImage] = useState(null)
   const [identified, setIdentified] = useState(null)
@@ -102,8 +103,10 @@ export default function Camera() {
   }, [])
 
   async function processImage(base64) {
+    const scanId = ++scanIdRef.current
     try {
       const result = await identifyCard(base64)
+      if (scanId !== scanIdRef.current) return // usuário já saiu dessa captura (reset/nova foto)
 
       if (!result.isValidPTBR) {
         setErrorMsg('Essa carta parece ser uma impressão internacional. Este app é exclusivo para cartas PT-BR.')
@@ -111,16 +114,22 @@ export default function Camera() {
         return
       }
 
-      const [tcg, priceRes] = await Promise.allSettled([
+      // Avança para a confirmação assim que a identificação em si termina —
+      // preço e imagem do catálogo (chamadas a APIs externas, mais lentas e
+      // variáveis) são preenchidos depois, sem bloquear o "identificando".
+      setIdentified(result)
+      setState(S.CONFIRM)
+
+      Promise.allSettled([
         searchCard(result.number, result.setCode),
         fetchPrice(result.name, result.setCode),
-      ])
-
-      setIdentified(result)
-      setTcgCard(tcg.status === 'fulfilled' ? tcg.value : null)
-      setPrice(priceRes.status === 'fulfilled' ? priceRes.value : null)
-      setState(S.CONFIRM)
+      ]).then(([tcg, priceRes]) => {
+        if (scanId !== scanIdRef.current) return // resultado de uma captura já abandonada
+        setTcgCard(tcg.status === 'fulfilled' ? tcg.value : null)
+        setPrice(priceRes.status === 'fulfilled' ? priceRes.value : null)
+      })
     } catch {
+      if (scanId !== scanIdRef.current) return
       setErrorMsg('Não consegui identificar essa carta. Tente novamente com melhor iluminação e a carta centralizada na moldura.')
       setState(S.ERROR)
     }
@@ -159,6 +168,7 @@ export default function Camera() {
   }
 
   function reset() {
+    scanIdRef.current++ // invalida qualquer resultado tardio da captura anterior
     setState(S.PREVIEW)
     setCamState('idle')
     setCapturedImage(null)
