@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { fetchCardDetail, addCardById, updateCollectionItem, removeFromCollection } from '../services/api'
+import { invalidateDataCache } from '../services/dataCache'
 import { brl, rarityLabel, formatDate, diffLabel } from '../utils/format'
 import PriceChart from '../components/PriceChart'
 import PokeballLoader from '../components/PokeballLoader'
@@ -57,6 +58,7 @@ export default function CardDetail() {
     try {
       const { item } = await updateCollectionItem(id, { quantity: q })
       setColItem(item)
+      invalidateDataCache()
     } catch (e) { console.error(e) } finally { setBusy(false) }
   }
 
@@ -69,6 +71,7 @@ export default function CardDetail() {
     try {
       const { item } = await updateCollectionItem(id, { purchasePrice: raw === '' ? null : raw })
       setColItem(item)
+      invalidateDataCache()
     } catch (e) { console.error(e) } finally { setBusy(false) }
   }
 
@@ -80,6 +83,7 @@ export default function CardDetail() {
       setPriceHistory([])
       setConfirmRemove(false)
       setPaidInput('')
+      invalidateDataCache()
     } catch (e) { console.error(e) } finally { setBusy(false) }
   }
 
@@ -87,6 +91,7 @@ export default function CardDetail() {
     setBusy(true)
     try {
       await addCardById(id)
+      invalidateDataCache()
       await loadCard()
     } catch (e) { console.error(e) } finally { setBusy(false) }
   }

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { fetchAllData, savePriceApi, snapshotPortfolio } from '../services/api'
+import { savePriceApi, snapshotPortfolio } from '../services/api'
+import { getCachedData, invalidateDataCache } from '../services/dataCache'
 import { fetchPrice } from '../services/pricing'
 import { brl } from '../utils/format'
 import PokeballLoader from '../components/PokeballLoader'
@@ -27,20 +28,25 @@ export default function Dashboard() {
 
   useEffect(() => { loadData() }, [])
 
+  function applyData(data) {
+    const { cards: allCards, collection: col, prices: priceMap, portfolio: hist, offline: isOffline } = data
+    setCollection(col || [])
+    setCards(allCards || [])
+    setPrices(priceMap || {})
+    setPortfolio(hist || [])
+    setOffline(!!isOffline)
+    if (priceMap && Object.values(priceMap).length > 0) {
+      const latest = Object.values(priceMap).sort(
+        (a, b) => new Date(b.date_recorded) - new Date(a.date_recorded)
+      )[0]
+      setLastUpdate(latest.date_recorded)
+    }
+  }
+
   async function loadData() {
     try {
-      const { cards: allCards, collection: col, prices: priceMap, portfolio: hist, offline: isOffline } = await fetchAllData()
-      setCollection(col || [])
-      setCards(allCards || [])
-      setPrices(priceMap || {})
-      setPortfolio(hist || [])
-      setOffline(!!isOffline)
-      if (priceMap && Object.values(priceMap).length > 0) {
-        const latest = Object.values(priceMap).sort(
-          (a, b) => new Date(b.date_recorded) - new Date(a.date_recorded)
-        )[0]
-        setLastUpdate(latest.date_recorded)
-      }
+      const data = await getCachedData({ onRevalidate: applyData })
+      applyData(data)
     } catch (e) {
       console.warn('Erro ao carregar dados:', e.message)
       setCollection([])
@@ -87,6 +93,7 @@ export default function Dashboard() {
     setUpdateReport(report)
     setLastUpdate(new Date().toISOString())
     await snapshotPortfolio()
+    invalidateDataCache()
     await loadData()
     setUpdating(false)
   }

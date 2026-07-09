@@ -22,7 +22,7 @@ export default async function handler(req, res) {
 
   const { data: collection, error: cole } = await supabase
     .from('collection')
-    .select('*, cards(*)')
+    .select('*, cards(id, name, number, rarity, set_code, image_url, type)')
 
   if (cole) return res.status(500).json({ error: cole.message })
 
@@ -35,10 +35,15 @@ export default async function handler(req, res) {
     }
   }
 
-  const { data: prices } = await supabase
-    .from('price_history')
-    .select('card_id, price_brl, source, date_recorded')
-    .order('date_recorded', { ascending: false })
+  // Só cartas na coleção têm preço — evita varrer o histórico inteiro (cresce a cada atualização)
+  const ownedCardIds = (collection || []).map(item => item.card_id)
+  const { data: prices } = ownedCardIds.length > 0
+    ? await supabase
+        .from('price_history')
+        .select('card_id, price_brl, source, date_recorded')
+        .in('card_id', ownedCardIds)
+        .order('date_recorded', { ascending: false })
+    : { data: [] }
 
   const priceMap = {}
   for (const p of prices || []) {

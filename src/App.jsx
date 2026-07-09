@@ -1,11 +1,13 @@
-import React from 'react'
+import React, { Suspense, lazy } from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
-import Dashboard from './pages/Dashboard'
-import Pokedex from './pages/Pokedex'
-import CardDetail from './pages/CardDetail'
-import Camera from './pages/Camera'
 import BottomNav from './components/BottomNav'
 import ErrorBoundary from './components/ErrorBoundary'
+import PokeballLoader from './components/PokeballLoader'
+
+const Dashboard  = lazy(() => import('./pages/Dashboard'))
+const Pokedex    = lazy(() => import('./pages/Pokedex'))
+const CardDetail = lazy(() => import('./pages/CardDetail'))
+const Camera     = lazy(() => import('./pages/Camera'))
 
 function ComingSoon({ title }) {
   return (
@@ -28,14 +30,20 @@ function Inner() {
   return (
     <div className="h-full max-w-md mx-auto relative overflow-hidden">
       <div className="h-full overflow-y-auto scroll-hide">
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/pokedex" element={<Pokedex />} />
-          <Route path="/card/:id" element={<CardDetail />} />
-          <Route path="/camera" element={<Camera />} />
-          <Route path="/decks" element={<ComingSoon title="Decks" />} />
-          <Route path="/market" element={<ComingSoon title="Mercado" />} />
-        </Routes>
+        <Suspense fallback={
+          <div className="flex items-center justify-center h-full bg-[#000000]">
+            <PokeballLoader text="Carregando..." />
+          </div>
+        }>
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/pokedex" element={<Pokedex />} />
+            <Route path="/card/:id" element={<CardDetail />} />
+            <Route path="/camera" element={<Camera />} />
+            <Route path="/decks" element={<ComingSoon title="Decks" />} />
+            <Route path="/market" element={<ComingSoon title="Mercado" />} />
+          </Routes>
+        </Suspense>
       </div>
       {!hideNav && (
         <div className="vt-nav absolute bottom-0 left-0 right-0 z-50">

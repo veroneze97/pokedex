@@ -4,6 +4,7 @@ import { identifyCard } from '../services/vision'
 import { searchCard } from '../services/tcgApi'
 import { fetchPrice } from '../services/pricing'
 import { addCardToCollection, savePriceApi } from '../services/api'
+import { invalidateDataCache } from '../services/dataCache'
 import { brl, rarityLabel } from '../utils/format'
 import PokeballLoader from '../components/PokeballLoader'
 
@@ -142,6 +143,7 @@ export default function Camera() {
         savePriceApi(result.cardId, price.price, price.source).catch(() => {})
       }
 
+      invalidateDataCache()
       const cardName = identified.name
       reset()
       setToast({ name: cardName })

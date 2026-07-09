@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { brl } from '../utils/format'
 import { getTypeGlow } from '../utils/typeColors'
 
-export default function CardTile({ card, owned, quantity, price, index = 0 }) {
+function CardTile({ card, owned, quantity, price, index = 0 }) {
   const navigate = useNavigate()
   const delay = Math.min(index * 28, 560)
   const glow = owned ? getTypeGlow(card.type) : null
@@ -49,3 +49,5 @@ export default function CardTile({ card, owned, quantity, price, index = 0 }) {
     </button>
   )
 }
+
+export default React.memo(CardTile)

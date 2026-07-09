@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react'
-import { fetchAllData } from '../services/api'
+import React, { useEffect, useState, useMemo } from 'react'
+import { getCachedData } from '../services/dataCache'
 import CardTile from '../components/CardTile'
 import PokeballLoader from '../components/PokeballLoader'
 import OfflineBanner from '../components/OfflineBanner'
@@ -27,16 +27,21 @@ export default function Pokedex() {
 
   useEffect(() => { loadAll() }, [])
 
+  function applyData(data) {
+    const { cards: allCards, collection: col, prices: priceMap, offline: isOffline, sets: setsData } = data
+    setCards(allCards || [])
+    const map = {}
+    for (const item of (col || [])) map[item.card_id] = item
+    setCollection(map)
+    setPrices(priceMap || {})
+    setSetsList(setsData || [])
+    setOffline(!!isOffline)
+  }
+
   async function loadAll() {
     try {
-      const { cards: allCards, collection: col, prices: priceMap, offline: isOffline, sets: setsData } = await fetchAllData()
-      setCards(allCards || [])
-      const map = {}
-      for (const item of (col || [])) map[item.card_id] = item
-      setCollection(map)
-      setPrices(priceMap || {})
-      setSetsList(setsData || [])
-      setOffline(!!isOffline)
+      const data = await getCachedData({ onRevalidate: applyData })
+      applyData(data)
     } catch (e) {
       console.error(e)
     } finally {
@@ -53,26 +58,28 @@ export default function Pokedex() {
   const q = query.trim().toLowerCase()
   const sortKey = SORTS[sortIdx].key
 
-  const filtered = cardsInSet.filter(card => {
-    const has = !!collection[card.id]
-    if (filter === 'Possuídas' && !has) return false
-    if (filter === 'Faltando' && has) return false
-    if (q && !(
-      card.name?.toLowerCase().includes(q) ||
-      String(card.number || '').includes(q)
-    )) return false
-    return true
-  })
+  const sorted = useMemo(() => {
+    const filtered = cardsInSet.filter(card => {
+      const has = !!collection[card.id]
+      if (filter === 'Possuídas' && !has) return false
+      if (filter === 'Faltando' && has) return false
+      if (q && !(
+        card.name?.toLowerCase().includes(q) ||
+        String(card.number || '').includes(q)
+      )) return false
+      return true
+    })
 
-  const sorted = [...filtered].sort((a, b) => {
-    if (sortKey === 'preco') {
-      return (prices[b.id]?.price_brl || 0) - (prices[a.id]?.price_brl || 0)
-    }
-    if (sortKey === 'nome') {
-      return (a.name || '').localeCompare(b.name || '', 'pt-BR')
-    }
-    return Number(a.number) - Number(b.number)
-  })
+    return [...filtered].sort((a, b) => {
+      if (sortKey === 'preco') {
+        return (prices[b.id]?.price_brl || 0) - (prices[a.id]?.price_brl || 0)
+      }
+      if (sortKey === 'nome') {
+        return (a.name || '').localeCompare(b.name || '', 'pt-BR')
+      }
+      return Number(a.number) - Number(b.number)
+    })
+  }, [cardsInSet, collection, prices, filter, q, sortKey])
 
   const setChips = [
     { code: 'all', label: 'Todos' },
