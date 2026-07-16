@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { savePriceApi, snapshotPortfolio } from '../services/api'
 import { getCachedData, invalidateDataCache } from '../services/dataCache'
@@ -26,9 +26,7 @@ export default function Dashboard() {
   const [updateReport, setUpdateReport]   = useState(null)
   const [confirmUpdate, setConfirmUpdate] = useState(false)
 
-  useEffect(() => { loadData() }, [])
-
-  function applyData(data) {
+  const applyData = useCallback((data) => {
     const { cards: allCards, collection: col, prices: priceMap, portfolio: hist, offline: isOffline } = data
     setCollection(col || [])
     setCards(allCards || [])
@@ -41,9 +39,9 @@ export default function Dashboard() {
       )[0]
       setLastUpdate(latest.date_recorded)
     }
-  }
+  }, [])
 
-  async function loadData() {
+  const loadData = useCallback(async () => {
     try {
       const data = await getCachedData({ onRevalidate: applyData })
       applyData(data)
@@ -54,20 +52,22 @@ export default function Dashboard() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [applyData])
+
+  useEffect(() => { loadData() }, [loadData])
 
   async function handleUpdatePrices() {
     setConfirmUpdate(false)
     setUpdating(true)
     const report = { up: [], down: [], same: [] }
     const BATCH  = 5
+    let completed = 0
 
     for (let i = 0; i < collection.length; i += BATCH) {
       const batch = collection.slice(i, i + BATCH)
       await Promise.all(
         batch.map(async (item) => {
           const card = item.cards
-          setUpdateProgress({ current: i + 1, total: collection.length, name: card.name })
           try {
             const result = await fetchPrice(card.name, card.set_code)
             if (result?.price) {
@@ -84,6 +84,9 @@ export default function Dashboard() {
             }
           } catch (e) {
             console.error('Price fetch error:', e)
+          } finally {
+            completed += 1
+            setUpdateProgress({ current: completed, total: collection.length, name: card.name })
           }
         })
       )
@@ -162,7 +165,7 @@ export default function Dashboard() {
         {offline && <OfflineBanner />}
 
         {/* ── Hero de patrimônio — sem caixa, luz própria ──────────────────────── */}
-        <div className="relative text-center py-4 overflow-hidden">
+        <div className="relative text-center py-4 overflow-hidden lg:max-w-2xl lg:mx-auto">
           <div
             className="absolute pointer-events-none"
             style={{
@@ -204,8 +207,10 @@ export default function Dashboard() {
           )}
         </div>
 
+        <div className="lg:flex lg:gap-8 lg:items-start">
+
         {/* ── Metrics chips — Cartas + Progresso ─────────────────────────────── */}
-        <div className="flex gap-3">
+        <div className="flex gap-3 lg:flex-col lg:w-56 lg:flex-shrink-0">
           <div className="flex-1 bg-[#101014] rounded-xl p-5">
             <p className="text-[#8E8E93] text-[10px] font-medium uppercase tracking-widest mb-2">Cartas</p>
             <p className="text-[#F4F4F6] text-[22px] font-bold tabular-nums leading-none">{uniqueOwned}</p>
@@ -232,13 +237,13 @@ export default function Dashboard() {
               </button>
             </div>
             <div
-              className="overflow-x-auto scroll-hide -mx-5"
+              className="overflow-x-auto scroll-hide -mx-5 lg:overflow-visible lg:mx-0"
               style={{
                 maskImage: 'linear-gradient(to right, transparent 0, black 20px, black calc(100% - 20px), transparent 100%)',
                 WebkitMaskImage: 'linear-gradient(to right, transparent 0, black 20px, black calc(100% - 20px), transparent 100%)',
               }}
             >
-              <div className="flex gap-3 px-5 pb-1" style={{ width: 'max-content' }}>
+              <div className="flex gap-3 px-5 pb-1 lg:flex-wrap lg:px-0" style={{ width: 'max-content' }}>
                 {top3.map((item) => (
                   <button
                     key={item.id}
@@ -271,6 +276,8 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+
+        </div>
 
         {/* ── Confirm update ─────────────────────────────────────────────────── */}
         {confirmUpdate && (
