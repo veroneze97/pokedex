@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react'
+import React, { useCallback, useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { fetchCardDetail, addCardById, updateCollectionItem, removeFromCollection } from '../services/api'
 import { invalidateDataCache } from '../services/dataCache'
@@ -31,9 +31,7 @@ export default function CardDetail() {
   }
   const resetTilt = () => setTilt({ x: 0, y: 0 })
 
-  useEffect(() => { loadCard() }, [id])
-
-  async function loadCard() {
+  const loadCard = useCallback(async () => {
     try {
       const { card: cardData, colItem: colData, priceHistory: hist } = await fetchCardDetail(id)
       setCard(cardData)
@@ -47,7 +45,9 @@ export default function CardDetail() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
+
+  useEffect(() => { loadCard() }, [loadCard])
 
   // ── Ações de coleção ──────────────────────────────────────────────────────
   async function changeQty(delta) {
@@ -138,14 +138,14 @@ export default function CardDetail() {
   const ligaUrl    = `https://www.ligapokemon.com.br/?view=cards/search&card=${encodeURIComponent(card.name)}`
 
   return (
-    <div className="min-h-full bg-[#000000] pb-32">
+    <div className="min-h-full bg-[#000000] pb-32 lg:flex lg:gap-10 lg:items-start lg:pb-16">
 
       {/* ── Palco de revelação: a carta respira sozinha, luz direcional de cima ──
           Sem header/barra fixa aqui — só o botão de voltar flutuante, como nos
           mockups validados. Dados (preço, gráfico, ficha) ficam abaixo, ao rolar. */}
       <div
-        className="safe-top relative flex flex-col items-center justify-end overflow-hidden"
-        style={{ height: '58vh', paddingBottom: 28 }}
+        className="safe-top relative flex flex-col items-center justify-end overflow-hidden pb-7 lg:w-[42%] lg:flex-shrink-0 lg:sticky lg:top-10 lg:rounded-3xl lg:pb-10"
+        style={{ height: '58vh' }}
       >
         {/* Spotlight: luz direcional vinda de cima, não glow difuso uniforme */}
         <div
@@ -229,7 +229,7 @@ export default function CardDetail() {
         </div>
 
         {/* Indício de scroll */}
-        <div className="relative z-[2] flex flex-col items-center gap-1 mt-5 opacity-50">
+        <div className="relative z-[2] flex flex-col items-center gap-1 mt-5 opacity-50 lg:hidden">
           <span className="text-[#8E8E93] text-[9px] uppercase tracking-widest">Ver detalhes</span>
           <svg
             viewBox="0 0 24 24" fill="none" stroke="#8E8E93" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
@@ -240,7 +240,7 @@ export default function CardDetail() {
         </div>
       </div>
 
-      <div className="px-5 pt-6 space-y-4">
+      <div className="px-5 pt-6 space-y-4 lg:flex-1 lg:pt-10">
 
         {/* ── Segmented control (iOS-style) ─────────────────────────────────── */}
         <div className="flex bg-[#101014] border border-white/[0.06] rounded-xl p-1 gap-1">
