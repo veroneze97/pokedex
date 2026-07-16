@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react'
+import React, { useCallback, useEffect, useState, useMemo } from 'react'
 import { getCachedData } from '../services/dataCache'
 import CardTile from '../components/CardTile'
 import PokeballLoader from '../components/PokeballLoader'
@@ -25,9 +25,7 @@ export default function Pokedex() {
   const [query, setQuery]           = useState('')
   const [sortIdx, setSortIdx]       = useState(0)
 
-  useEffect(() => { loadAll() }, [])
-
-  function applyData(data) {
+  const applyData = useCallback((data) => {
     const { cards: allCards, collection: col, prices: priceMap, offline: isOffline, sets: setsData } = data
     setCards(allCards || [])
     const map = {}
@@ -36,9 +34,9 @@ export default function Pokedex() {
     setPrices(priceMap || {})
     setSetsList(setsData || [])
     setOffline(!!isOffline)
-  }
+  }, [])
 
-  async function loadAll() {
+  const loadAll = useCallback(async () => {
     try {
       const data = await getCachedData({ onRevalidate: applyData })
       applyData(data)
@@ -47,7 +45,9 @@ export default function Pokedex() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [applyData])
+
+  useEffect(() => { loadAll() }, [loadAll])
 
   // Cartas do set selecionado — progresso e contagens acompanham a seleção
   const cardsInSet = activeSet === 'all' ? cards : cards.filter(c => c.set_code === activeSet)
@@ -229,7 +229,7 @@ export default function Pokedex() {
         </div>
 
         {/* Card grid — 2 columns */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {sorted.map((card, index) => (
             <CardTile
               key={card.id}
