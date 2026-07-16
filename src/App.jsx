@@ -64,7 +64,7 @@ function Inner() {
       </div>
 
       {!hideNav && (
-        <div className="vt-nav lg:hidden absolute bottom-0 left-0 right-0 z-50">
+        <div className="vt-nav lg:hidden absolute bottom-0 left-0 right-0 z-50 max-w-md mx-auto">
           <BottomNav />
         </div>
       )}
