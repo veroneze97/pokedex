@@ -5,8 +5,10 @@ import { searchCard } from '../services/tcgApi'
 import { fetchPrice } from '../services/pricing'
 import { addCardToCollection, savePriceApi } from '../services/api'
 import { invalidateDataCache } from '../services/dataCache'
+import { createCaptureGate } from '../services/cameraCaptureGate'
 import { brl, rarityLabel } from '../utils/format'
 import PokeballLoader from '../components/PokeballLoader'
+import { useIsDesktop } from '../hooks/useIsDesktop'
 
 const S = { PREVIEW: 'preview', PROCESSING: 'processing', CONFIRM: 'confirm', ERROR: 'error' }
 
@@ -19,6 +21,7 @@ const STABLE_DURATION = 900     // ms de estabilidade para disparar a captura
 const STARTUP_GRACE = 600       // ms ignorados após a câmera ativar (autofoco)
 
 export default function Camera() {
+  const isDesktop = useIsDesktop()
   const navigate = useNavigate()
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
@@ -29,6 +32,11 @@ export default function Camera() {
   const motionSeenRef = useRef(false)
   const stableStartRef = useRef(null)
   const activatedAtRef = useRef(0)
+  const captureGateRef = useRef(createCaptureGate())
+  const cameraRequestRef = useRef(0)
+  const mountedRef = useRef(true)
+  const toastTimerRef = useRef(null)
+  const restartTimerRef = useRef(null)
   const [state, setState] = useState(S.PREVIEW)
   const [capturedImage, setCapturedImage] = useState(null)
   const [identified, setIdentified] = useState(null)
@@ -46,14 +54,27 @@ export default function Camera() {
     if (state !== S.PREVIEW) stopCamera()
   }, [state])
 
+  useEffect(() => () => {
+    mountedRef.current = false
+    stopCamera()
+    clearTimeout(toastTimerRef.current)
+    clearTimeout(restartTimerRef.current)
+  }, [])
+
   async function startCamera() {
+    const requestId = ++cameraRequestRef.current
     setCamState('starting')
+    let stream = null
     try {
       if (!navigator.mediaDevices?.getUserMedia) throw new Error('not supported')
-      const stream = await navigator.mediaDevices.getUserMedia({
+      stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
         audio: false,
       })
+      if (!mountedRef.current || requestId !== cameraRequestRef.current) {
+        stream.getTracks().forEach(t => t.stop())
+        return
+      }
       streamRef.current = stream
 
       const video = videoRef.current
@@ -71,6 +92,10 @@ export default function Camera() {
       })
 
       await video.play()
+      if (!mountedRef.current || requestId !== cameraRequestRef.current) {
+        stopCamera()
+        return
+      }
       // Reseta a detecção a cada (re)abertura: exige movimento antes de armar
       prevSampleRef.current = null
       motionSeenRef.current = false
@@ -79,26 +104,34 @@ export default function Camera() {
       setLockProgress(0)
       setCamState('active')
     } catch (e) {
+      stream?.getTracks().forEach(t => t.stop())
+      if (!mountedRef.current || requestId !== cameraRequestRef.current) return
       console.warn('Camera error:', e)
       setCamState('error')
     }
   }
 
   function stopCamera() {
+    cameraRequestRef.current++
     streamRef.current?.getTracks().forEach(t => t.stop())
     streamRef.current = null
     if (videoRef.current) videoRef.current.srcObject = null
   }
 
   const captureFrame = useCallback(() => {
+    if (!captureGateRef.current.tryStart()) return
     const video = videoRef.current
     const canvas = canvasRef.current
-    if (!video || !canvas) return
+    if (!video || !canvas) {
+      captureGateRef.current.reset()
+      return
+    }
 
     const w = video.videoWidth
     const h = video.videoHeight
 
     if (!w || !h) {
+      captureGateRef.current.reset()
       setErrorMsg('A câmera ainda está carregando. Aguarde um instante e tente novamente.')
       setState(S.ERROR)
       return
@@ -112,6 +145,7 @@ export default function Camera() {
     const base64 = dataUrl.split(',')[1]
 
     if (!base64 || base64.length < 1000) {
+      captureGateRef.current.reset()
       setErrorMsg('Não consegui capturar a imagem. Verifique a iluminação e tente novamente.')
       setState(S.ERROR)
       return
@@ -230,10 +264,14 @@ export default function Camera() {
       const cardName = identified.name
       reset()
       setToast({ name: cardName })
-      setTimeout(() => setToast(null), 2500)
+      clearTimeout(toastTimerRef.current)
+      toastTimerRef.current = setTimeout(() => setToast(null), 2500)
       // Scan em lote: reabre a câmera direto para a próxima carta,
       // sem passar pela tela "Ativar Câmera"
-      setTimeout(() => startCamera(), 150)
+      clearTimeout(restartTimerRef.current)
+      restartTimerRef.current = setTimeout(() => {
+        if (mountedRef.current) startCamera()
+      }, 150)
     } catch (e) {
       setSaving(false)
       setErrorMsg(e.message || 'Erro ao salvar carta. Tente novamente.')
@@ -254,9 +292,34 @@ export default function Camera() {
     setPaidInput('')
     setLockProgress(0)
     setFlash(false)
+    captureGateRef.current.reset()
   }
 
   const showVideo = state === S.PREVIEW && camState === 'active'
+
+  if (isDesktop) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full bg-[#000000] gap-6 px-8 text-center">
+        <img
+          src="/desktop/camera-desktop-blocked.png"
+          alt=""
+          className="w-full max-w-sm rounded-2xl"
+        />
+        <div>
+          <p className="text-[#F4F4F6] text-[19px] font-bold mb-2">Escaneie pelo celular</p>
+          <p className="text-[#8E8E93] text-sm leading-relaxed max-w-xs mx-auto">
+            A captura de cartas por câmera é exclusiva da versão mobile/PWA instalada no seu celular.
+          </p>
+        </div>
+        <button
+          onClick={() => navigate('/', { viewTransition: true })}
+          className="pressable h-12 px-6 rounded-xl bg-[#F4F4F6] text-[#000000] text-sm font-semibold"
+        >
+          Voltar ao início
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div className="relative flex flex-col h-full bg-[#000000] overflow-hidden">
