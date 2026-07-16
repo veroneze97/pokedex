@@ -240,7 +240,7 @@ export default function Dashboard() {
                 WebkitMaskImage: 'linear-gradient(to right, transparent 0, black 20px, black calc(100% - 20px), transparent 100%)',
               }}
             >
-              <div className="flex gap-3 px-5 pb-1 lg:flex-wrap lg:px-0" style={{ width: 'max-content' }}>
+              <div className="flex gap-3 px-5 pb-1 lg:flex-wrap lg:px-0 lg:w-auto" style={{ width: 'max-content' }}>
                 {top3.map((item) => (
                   <button
                     key={item.id}
