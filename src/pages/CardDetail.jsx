@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { fetchCardDetail, addCardById, updateCollectionItem, removeFromCollection } from '../services/api'
 import { invalidateDataCache } from '../services/dataCache'
@@ -31,7 +31,9 @@ export default function CardDetail() {
   }
   const resetTilt = () => setTilt({ x: 0, y: 0 })
 
-  const loadCard = useCallback(async () => {
+  useEffect(() => { loadCard() }, [id])
+
+  async function loadCard() {
     try {
       const { card: cardData, colItem: colData, priceHistory: hist } = await fetchCardDetail(id)
       setCard(cardData)
@@ -45,9 +47,7 @@ export default function CardDetail() {
     } finally {
       setLoading(false)
     }
-  }, [id])
-
-  useEffect(() => { loadCard() }, [loadCard])
+  }
 
   // ── Ações de coleção ──────────────────────────────────────────────────────
   async function changeQty(delta) {
