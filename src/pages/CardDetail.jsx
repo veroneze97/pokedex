@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { fetchCardDetail, addCardById, updateCollectionItem, removeFromCollection } from '../services/api'
+import { fetchCardDetail, addCardById, updateCollectionItem, removeFromCollection, savePriceApi } from '../services/api'
 import { invalidateDataCache } from '../services/dataCache'
 import { brl, rarityLabel, formatDate, diffLabel } from '../utils/format'
 import PriceChart from '../components/PriceChart'
@@ -22,6 +22,7 @@ export default function CardDetail() {
   const [busy, setBusy]               = useState(false)
   const [confirmRemove, setConfirmRemove] = useState(false)
   const [paidInput, setPaidInput]     = useState('')
+  const [marketPriceInput, setMarketPriceInput] = useState('')
 
   function handleTilt(e) {
     const r = e.currentTarget.getBoundingClientRect()
@@ -42,6 +43,8 @@ export default function CardDetail() {
       setPaidInput(
         colData?.purchase_price != null ? String(colData.purchase_price).replace('.', ',') : ''
       )
+      const latest = hist && hist.length ? hist[hist.length - 1].price_brl : null
+      setMarketPriceInput(latest != null ? String(latest).replace('.', ',') : '')
     } catch (e) {
       console.error(e)
     } finally {
@@ -91,6 +94,21 @@ export default function CardDetail() {
     setBusy(true)
     try {
       await addCardById(id)
+      invalidateDataCache()
+      await loadCard()
+    } catch (e) { console.error(e) } finally { setBusy(false) }
+  }
+
+  // Preço de mercado manual (ex: consultado na Liga Pokémon) — grava um
+  // ponto no histórico de preço; se a carta ainda não estiver na coleção,
+  // adiciona junto num único passo.
+  async function saveMarketPrice() {
+    const parsed = parseFloat(marketPriceInput.trim().replace(',', '.'))
+    if (isNaN(parsed) || parsed < 0) return
+    setBusy(true)
+    try {
+      if (!colItem) await addCardById(id)
+      await savePriceApi(id, parsed, 'manual')
       invalidateDataCache()
       await loadCard()
     } catch (e) { console.error(e) } finally { setBusy(false) }
@@ -401,6 +419,33 @@ export default function CardDetail() {
                 <path d="M7 7h10v10" />
               </svg>
             </a>
+
+            {/* Atualizar preço manualmente — útil pra sets sem preço automático (USD) */}
+            <div className="bg-[#101014] border border-white/[0.06] rounded-xl p-5 space-y-3">
+              <p className="text-[#8E8E93] text-[10px] font-medium uppercase tracking-widest">
+                Atualizar preço manualmente
+              </p>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 flex-1 bg-white/[0.04] rounded-lg px-3" style={{ minHeight: 44 }}>
+                  <span className="text-[#8E8E93] text-sm">R$</span>
+                  <input
+                    value={marketPriceInput}
+                    onChange={e => setMarketPriceInput(e.target.value)}
+                    inputMode="decimal"
+                    placeholder="0,00"
+                    className="bg-transparent text-[#F4F4F6] text-sm font-medium flex-1 outline-none placeholder-[#8E8E93]/50"
+                    style={{ userSelect: 'text', WebkitUserSelect: 'text' }}
+                  />
+                </div>
+                <button
+                  onClick={saveMarketPrice}
+                  disabled={busy || !marketPriceInput.trim()}
+                  className="pressable h-11 px-4 rounded-lg bg-[#F4F4F6] text-[#000000] text-sm font-semibold disabled:opacity-40"
+                >
+                  {colItem ? 'Atualizar' : 'Adicionar'}
+                </button>
+              </div>
+            </div>
 
             {/* Remover da coleção */}
             {colItem && (
