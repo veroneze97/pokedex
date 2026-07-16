@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { getCachedData } from '../services/dataCache'
 import CardTile from '../components/CardTile'
 import PokeballLoader from '../components/PokeballLoader'
@@ -21,11 +22,23 @@ export default function Pokedex() {
   const [filter, setFilter]         = useState('Todas')
   const [loading, setLoading]       = useState(true)
   const [offline, setOffline]       = useState(false)
-  const [activeSet, setActiveSet]   = useState('all')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [activeSet, setActiveSetState] = useState(searchParams.get('set') || 'all')
   const [query, setQuery]           = useState('')
   const [sortIdx, setSortIdx]       = useState(0)
 
   useEffect(() => { loadAll() }, [])
+
+  // Mantém activeSet em sincronia com ?set= na URL — permite deep link
+  // (ex: a Sidebar do desktop navega direto pra /pokedex?set=me04-en)
+  useEffect(() => {
+    setActiveSetState(searchParams.get('set') || 'all')
+  }, [searchParams])
+
+  function setActiveSet(code) {
+    setActiveSetState(code)
+    setSearchParams(code === 'all' ? {} : { set: code })
+  }
 
   function applyData(data) {
     const { cards: allCards, collection: col, prices: priceMap, offline: isOffline, sets: setsData } = data
