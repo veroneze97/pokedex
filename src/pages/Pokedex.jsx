@@ -126,8 +126,14 @@ export default function Pokedex() {
 
         {offline && <OfflineBanner />}
 
-        {/* Seletor de set */}
-        <div className="flex gap-2 overflow-x-auto scroll-hide -mx-5 px-5">
+        {/* Seletor de set — scroll horizontal por toque (mobile) ou roda do mouse (desktop) */}
+        <div
+          className="flex gap-2 overflow-x-auto scroll-hide -mx-5 px-5"
+          onWheel={e => {
+            if (e.deltaY === 0) return
+            e.currentTarget.scrollLeft += e.deltaY
+          }}
+        >
           {setChips.map(s => (
             <button
               key={s.code}
