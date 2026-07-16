@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { savePriceApi, snapshotPortfolio } from '../services/api'
 import { getCachedData, invalidateDataCache } from '../services/dataCache'
@@ -26,7 +26,7 @@ export default function Dashboard() {
   const [updateReport, setUpdateReport]   = useState(null)
   const [confirmUpdate, setConfirmUpdate] = useState(false)
 
-  const applyData = useCallback((data) => {
+  function applyData(data) {
     const { cards: allCards, collection: col, prices: priceMap, portfolio: hist, offline: isOffline } = data
     setCollection(col || [])
     setCards(allCards || [])
@@ -39,9 +39,9 @@ export default function Dashboard() {
       )[0]
       setLastUpdate(latest.date_recorded)
     }
-  }, [])
+  }
 
-  const loadData = useCallback(async () => {
+  async function loadData() {
     try {
       const data = await getCachedData({ onRevalidate: applyData })
       applyData(data)
@@ -52,22 +52,22 @@ export default function Dashboard() {
     } finally {
       setLoading(false)
     }
-  }, [applyData])
+  }
 
-  useEffect(() => { loadData() }, [loadData])
+  useEffect(() => { loadData() }, [])
 
   async function handleUpdatePrices() {
     setConfirmUpdate(false)
     setUpdating(true)
     const report = { up: [], down: [], same: [] }
     const BATCH  = 5
-    let completed = 0
 
     for (let i = 0; i < collection.length; i += BATCH) {
       const batch = collection.slice(i, i + BATCH)
       await Promise.all(
         batch.map(async (item) => {
           const card = item.cards
+          setUpdateProgress({ current: i + 1, total: collection.length, name: card.name })
           try {
             const result = await fetchPrice(card.name, card.set_code)
             if (result?.price) {
@@ -84,9 +84,6 @@ export default function Dashboard() {
             }
           } catch (e) {
             console.error('Price fetch error:', e)
-          } finally {
-            completed += 1
-            setUpdateProgress({ current: completed, total: collection.length, name: card.name })
           }
         })
       )
