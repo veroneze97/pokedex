@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { fetchCardDetail, addCardById, updateCollectionItem, removeFromCollection, savePriceApi } from '../services/api'
-import { invalidateDataCache } from '../services/dataCache'
+import { getCachedData, invalidateDataCache } from '../services/dataCache'
 import { brl, rarityLabel, formatDate, diffLabel } from '../utils/format'
 import PriceChart from '../components/PriceChart'
 import PokeballLoader from '../components/PokeballLoader'
@@ -23,6 +23,7 @@ export default function CardDetail() {
   const [confirmRemove, setConfirmRemove] = useState(false)
   const [paidInput, setPaidInput]     = useState('')
   const [marketPriceInput, setMarketPriceInput] = useState('')
+  const [setCards, setSetCards]       = useState([])
 
   function handleTilt(e) {
     const r = e.currentTarget.getBoundingClientRect()
@@ -45,6 +46,14 @@ export default function CardDetail() {
       )
       const latest = hist && hist.length ? hist[hist.length - 1].price_brl : null
       setMarketPriceInput(latest != null ? String(latest).replace('.', ',') : '')
+
+      // Navegação anterior/próxima: cartas do mesmo set, ordenadas por número
+      const { cards: allCards } = await getCachedData()
+      setSetCards(
+        (allCards || [])
+          .filter(c => c.set_code === cardData.set_code)
+          .sort((a, b) => Number(a.number) - Number(b.number))
+      )
     } catch (e) {
       console.error(e)
     } finally {
@@ -155,6 +164,10 @@ export default function CardDetail() {
   const cardPnlPct = paid > 0 && latestPrice > 0 ? ((latestPrice - paid) / paid) * 100 : 0
   const ligaUrl    = `https://www.ligapokemon.com.br/?view=cards/search&card=${encodeURIComponent(card.name)}`
 
+  const setCardIndex = setCards.findIndex(c => c.id === card.id)
+  const prevCardId    = setCardIndex > 0 ? setCards[setCardIndex - 1].id : null
+  const nextCardId    = setCardIndex >= 0 && setCardIndex < setCards.length - 1 ? setCards[setCardIndex + 1].id : null
+
   return (
     <div className="min-h-full bg-[#000000] pb-32 lg:flex lg:gap-10 lg:items-start lg:pb-16">
 
@@ -200,6 +213,38 @@ export default function CardDetail() {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
             <path d="m12 19-7-7 7-7" />
             <path d="M19 12H5" />
+          </svg>
+        </button>
+
+        {/* Navegação anterior/próxima — cartas do mesmo set, ordenadas por número */}
+        <button
+          onClick={() => prevCardId && navigate(`/card/${prevCardId}`, { viewTransition: true })}
+          disabled={!prevCardId}
+          className="pressable absolute top-1/2 left-4 z-10 flex items-center justify-center rounded-full text-[#F4F4F6] disabled:opacity-0 disabled:pointer-events-none"
+          style={{
+            width: 44, height: 44, transform: 'translateY(-50%)',
+            background: 'rgba(20,20,20,0.5)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+          }}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+            <path d="m15 18-6-6 6-6" />
+          </svg>
+        </button>
+        <button
+          onClick={() => nextCardId && navigate(`/card/${nextCardId}`, { viewTransition: true })}
+          disabled={!nextCardId}
+          className="pressable absolute top-1/2 right-4 z-10 flex items-center justify-center rounded-full text-[#F4F4F6] disabled:opacity-0 disabled:pointer-events-none"
+          style={{
+            width: 44, height: 44, transform: 'translateY(-50%)',
+            background: 'rgba(20,20,20,0.5)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+          }}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+            <path d="m9 18 6-6-6-6" />
           </svg>
         </button>
 
