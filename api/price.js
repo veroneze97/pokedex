@@ -1,8 +1,9 @@
+// api/price.js
 export const maxDuration = 30
 
 import { createClient } from '@supabase/supabase-js'
 import { checkAuth, rateLimit } from './_auth.js'
-import { getSetByCode } from './_sets.js'
+import { pickTcgplayerPrice } from './_tcgdexPricing.js'
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -14,14 +15,14 @@ export default async function handler(req, res) {
   if (!checkAuth(req, res)) return
   if (!rateLimit(req, res, { limit: 60, windowMs: 60_000 })) return
 
-  const { cardName, setCode } = req.body
-  if (!cardName) return res.status(400).json({ error: 'cardName obrigatório' })
+  const { number, setCode } = req.body
+  if (!number || !setCode) return res.status(400).json({ error: 'number e setCode obrigatórios' })
 
   try {
-    const result = await fetchTcgPrice(cardName, setCode)
+    const result = await fetchTcgdexPrice(number, setCode)
     if (result) return res.json(result)
   } catch (e) {
-    console.warn('TCG API price failed:', e.message)
+    console.warn('TCGdex price failed:', e.message)
   }
 
   res.status(404).json({ error: 'Preço não encontrado' })
@@ -49,57 +50,25 @@ async function getUsdBrlRate() {
   return rateCache.value
 }
 
-async function fetchTcgPrice(cardName, setCode) {
-  const setRow = await getSetByCode(supabase, setCode)
-  if (!setRow?.pokemontcg_id) return null
-  const apiSetId = setRow.pokemontcg_id
+async function fetchTcgdexPrice(number, setCode) {
+  const { data: card, error } = await supabase
+    .from('cards')
+    .select('tcgdex_card_id')
+    .eq('number', number)
+    .eq('set_code', setCode)
+    .maybeSingle()
+  if (error) throw new Error(error.message)
+  if (!card?.tcgdex_card_id) return null
 
-  // Simplify name for search (remove accents and special chars)
-  const simpleName = cardName
-    .replace(/[àáâãäå]/g, 'a').replace(/[èéêë]/g, 'e')
-    .replace(/[ìíîï]/g, 'i').replace(/[òóôõö]/g, 'o')
-    .replace(/[ùúûü]/g, 'u').replace(/[ç]/g, 'c')
-    .split(' ').slice(0, 3).join(' ') // max 3 words
+  const res = await fetch(`https://api.tcgdex.net/v2/en/cards/${card.tcgdex_card_id}`)
+  if (!res.ok) throw new Error(`TCGdex respondeu ${res.status}`)
+  const tcgdexCard = await res.json()
 
-  const q = `name:"${simpleName}" set.id:${apiSetId}`
-  const url = `https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(q)}&pageSize=5`
+  const usdPrice = pickTcgplayerPrice(tcgdexCard.variants_detailed)
+  if (!usdPrice) return null
 
-  const res = await fetch(url, {
-    headers: { 'User-Agent': 'PokeDexPTBR/1.0' },
-  })
-
-  if (!res.ok) throw new Error(`TCG API responded ${res.status}`)
-
-  const data = await res.json()
-  const card = data.data?.[0]
-  if (!card) {
-    // Try broader search without set filter
-    const res2 = await fetch(
-      `https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(`name:"${simpleName}"`)}&pageSize=5`
-    )
-    const data2 = await res2.json()
-    const card2 = data2.data?.find(c => c.set?.id === apiSetId) || data2.data?.[0]
-    if (!card2) return null
-    return extractPrice(card2, await getUsdBrlRate())
-  }
-
-  return extractPrice(card, await getUsdBrlRate())
-}
-
-function extractPrice(card, brlRate) {
-  const prices = card.tcgplayer?.prices
-  if (!prices) return null
-
-  const usdPrice =
-    prices.holofoil?.market ||
-    prices.normal?.market ||
-    prices.reverseHolofoil?.market ||
-    prices['1stEditionHolofoil']?.market ||
-    prices['1stEditionNormal']?.market
-
-  if (!usdPrice || usdPrice <= 0) return null
-
+  const brlRate = await getUsdBrlRate()
   const brlPrice = Math.round(usdPrice * brlRate * 100) / 100
 
-  return { price: brlPrice, source: 'tcgapi_usd' }
+  return { price: brlPrice, source: 'tcgdex_usd' }
 }
