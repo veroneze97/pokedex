@@ -5,7 +5,7 @@ PWA mobile-first para catalogar cartas **Pokémon TCG em português (PT-BR)** co
 ## Funcionalidades
 
 - 📷 **Scanner de cartas** — fotografe a carta e o Claude Vision identifica nome, número, set e raridade (aceita apenas impressões PT-BR)
-- 💰 **Preços automáticos** — busca na Pokémon TCG API com conversão USD→BRL pela cotação do dia (AwesomeAPI, cache de 1h)
+- 💰 **Preços automáticos** — busca na TCGdex (TCGplayer/USD) com conversão USD→BRL pela cotação do dia (AwesomeAPI, cache de 1h)
 - 📈 **Portfólio** — valor total da coleção com histórico diário (sparkline), top cartas mais valiosas e variação por atualização
 - 📚 **Coleção visual** — grade de cartas com silhueta para as faltantes, progresso por set
 - 📴 **Offline** — último payload fica em cache no localStorage; sem rede o app segue utilizável com banner de aviso
@@ -26,6 +26,8 @@ Sets suportados: **Fogo Fantasmagórico** (`PFLpt`, 130 cartas) e **Mega Evoluti
 ## Setup
 
 1. **Banco**: crie um projeto no Supabase e rode [supabase-schema.sql](supabase-schema.sql) no SQL Editor (tabelas + RLS).
+
+   Em bancos já existentes, execute também [migrations/20260716_collection_integrity.sql](migrations/20260716_collection_integrity.sql). Ele elimina duplicatas antigas e habilita o salvamento atômico da coleção.
 2. **Env vars**: copie `.env.example` para `.env` e preencha. No Vercel, configure as mesmas variáveis em *Settings → Environment Variables*:
    - `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` — servidor
    - `ANTHROPIC_API_KEY` — servidor (scanner)
@@ -54,7 +56,7 @@ api/
   card-detail.js         GET detalhe de uma carta
   collection.js          GET coleção / POST adicionar carta (+ snapshot)
   identify.js            POST scanner via Claude Vision (rate limit + auth)
-  price.js               POST preço via Pokémon TCG API (cotação dinâmica)
+  price.js               POST preço via TCGdex/TCGplayer (cotação dinâmica)
   save-price.js          POST grava preço no histórico
   portfolio-snapshot.js  POST snapshot diário do valor total
   _auth.js / _portfolio.js   helpers (não viram rotas)

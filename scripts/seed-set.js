@@ -96,7 +96,6 @@ async function seed(tcgdexId, locale = 'pt') {
   const setRow = {
     id: setId,
     tcgdex_id: tcgdexId,
-    pokemontcg_id: null,
     id_prefix: idPrefix,
     name: setData.name,
     serie: setData.serie?.name || null,

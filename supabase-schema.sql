@@ -67,7 +67,6 @@ CREATE TABLE IF NOT EXISTS sets (
   tcgdex_id     TEXT NOT NULL,           -- ID na API TCGdex (api.tcgdex.net), usado pelo seed script
                                           -- não é único: um mesmo set pode ter 1 linha por idioma
                                           -- (ex: 'me04' → 'me04' PT-BR e 'me04-en' EN), ver migrations/20260716_sets_tcgdex_id_not_unique.sql
-  pokemontcg_id TEXT,                   -- ID no pokemontcg.io, usado só para preço USD (nullable)
   id_prefix     TEXT NOT NULL,          -- prefixo do ID da carta, ex: 'pfl' → 'pfl-008'
   name          TEXT NOT NULL,          -- nome oficial PT-BR
   serie         TEXT,                   -- agrupamento (ex: "Megaevolução") — usado na Fase 3
@@ -79,9 +78,9 @@ CREATE TABLE IF NOT EXISTS sets (
 );
 
 -- Bootstrap dos 2 sets legados (os 3 novos são inseridos pelo seed script)
-INSERT INTO sets (id, tcgdex_id, pokemontcg_id, id_prefix, name, serie, total, release_date) VALUES
-  ('PFLpt', 'me02', 'me2', 'pfl', 'Fogo Fantasmagórico', 'Megaevolução', 130, NULL),
-  ('ME1pt', 'me01', 'me1', 'me1', 'Megaevolução',        'Megaevolução', 188, NULL)
+INSERT INTO sets (id, tcgdex_id, id_prefix, name, serie, total, release_date) VALUES
+  ('PFLpt', 'me02', 'pfl', 'Fogo Fantasmagórico', 'Megaevolução', 130, NULL),
+  ('ME1pt', 'me01', 'me1', 'Megaevolução',        'Megaevolução', 188, NULL)
 ON CONFLICT (id) DO NOTHING;
 
 CREATE INDEX IF NOT EXISTS idx_cards_set_code ON cards(set_code);
