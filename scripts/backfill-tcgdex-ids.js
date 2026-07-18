@@ -62,7 +62,11 @@ async function main() {
   if (error) { console.error('Erro ao listar sets:', error.message); process.exit(1) }
 
   for (const set of sets) {
-    await backfillSet(set)
+    try {
+      await backfillSet(set)
+    } catch (e) {
+      console.error(`  ✗ falha no set ${set.id}, seguindo pro próximo:`, e.message)
+    }
   }
   console.log('\n✓ Backfill concluído.')
 }
