@@ -198,7 +198,7 @@ export default function Camera() {
 
       Promise.allSettled([
         searchCard(result.number, result.setCode),
-        fetchPrice(result.name, result.setCode),
+        fetchPrice(result.number.split('/')[0].padStart(3, '0'), result.setCode),
       ]).then(([tcg, priceRes]) => {
         if (scanId !== scanIdRef.current) return // resultado de uma captura já abandonada
         setTcgCard(tcg.status === 'fulfilled' ? tcg.value : null)

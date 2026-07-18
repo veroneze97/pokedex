@@ -69,7 +69,7 @@ export default function Dashboard() {
           const card = item.cards
           setUpdateProgress({ current: i + 1, total: collection.length, name: card.name })
           try {
-            const result = await fetchPrice(card.name, card.set_code)
+            const result = await fetchPrice(card.number, card.set_code)
             if (result?.price) {
               const prev = prices[card.id]?.price_brl || 0
               const diff = result.price - prev
