@@ -1,14 +1,18 @@
 -- Catálogo de cartas (populado via seed)
 CREATE TABLE IF NOT EXISTS cards (
-  id          TEXT PRIMARY KEY,          -- ex: "pfl-008" ou UUID
-  name        TEXT NOT NULL,
-  number      TEXT NOT NULL,             -- "008" (sem /094)
-  set_code    TEXT NOT NULL DEFAULT 'PFLpt',
-  nationality TEXT NOT NULL DEFAULT 'PT-BR',
-  rarity      TEXT,
-  image_url   TEXT,
+  id             TEXT PRIMARY KEY,          -- ex: "pfl-008" ou UUID
+  name           TEXT NOT NULL,
+  number         TEXT NOT NULL,             -- "008" (sem /094)
+  set_code       TEXT NOT NULL DEFAULT 'PFLpt',
+  nationality    TEXT NOT NULL DEFAULT 'PT-BR',
+  rarity         TEXT,
+  image_url      TEXT,
+  tcgdex_card_id TEXT,                      -- ID real na TCGdex (ex: 'me04-004'), usado pra buscar preço
   UNIQUE(number, set_code)
 );
+
+-- Migração para bancos existentes:
+-- ALTER TABLE cards ADD COLUMN IF NOT EXISTS tcgdex_card_id TEXT;
 
 -- Coleção do usuário
 CREATE TABLE IF NOT EXISTS collection (
@@ -36,6 +40,53 @@ CREATE TABLE IF NOT EXISTS price_history (
 CREATE INDEX IF NOT EXISTS idx_price_history_card_date ON price_history(card_id, date_recorded DESC);
 CREATE INDEX IF NOT EXISTS idx_collection_card_id ON collection(card_id);
 
+-- Uma linha por carta na coleção. Primeiro consolida dados já duplicados de
+-- versões anteriores e depois torna a regra obrigatória no banco.
+WITH ranked AS (
+  SELECT
+    id,
+    card_id,
+    row_number() OVER (PARTITION BY card_id ORDER BY date_added, id) AS rn,
+    sum(quantity) OVER (PARTITION BY card_id) AS total_quantity
+  FROM collection
+), updated AS (
+  UPDATE collection c
+  SET quantity = ranked.total_quantity
+  FROM ranked
+  WHERE c.id = ranked.id AND ranked.rn = 1
+  RETURNING c.id
+)
+DELETE FROM collection c
+USING ranked
+WHERE c.id = ranked.id AND ranked.rn > 1;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'collection_card_id_key'
+  ) THEN
+    ALTER TABLE collection ADD CONSTRAINT collection_card_id_key UNIQUE (card_id);
+  END IF;
+END $$;
+
+-- Incremento atômico usado pela API. COALESCE preserva o preço pago anterior
+-- quando a nova adição não informa um valor.
+CREATE OR REPLACE FUNCTION add_to_collection(p_card_id TEXT, p_purchase_price NUMERIC DEFAULT NULL)
+RETURNS SETOF collection
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN QUERY
+  INSERT INTO collection (card_id, quantity, condition, purchase_price, date_added)
+  VALUES (p_card_id, 1, 'NM', p_purchase_price, NOW())
+  ON CONFLICT (card_id) DO UPDATE
+  SET quantity = collection.quantity + 1,
+      purchase_price = COALESCE(EXCLUDED.purchase_price, collection.purchase_price)
+  RETURNING collection.*;
+END;
+$$;
+
 -- Histórico do valor total do portfólio (1 snapshot por dia, via upsert)
 CREATE TABLE IF NOT EXISTS portfolio_history (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -60,7 +111,9 @@ ALTER TABLE portfolio_history ENABLE ROW LEVEL SECURITY;
 -- zero migração nos dados já gravados.
 CREATE TABLE IF NOT EXISTS sets (
   id            TEXT PRIMARY KEY,       -- 'PFLpt','ME1pt' (legado) | 'me02.5','me03','me04' (novos, = tcgdex_id)
-  tcgdex_id     TEXT NOT NULL UNIQUE,   -- ID na API TCGdex (api.tcgdex.net), usado pelo seed script
+  tcgdex_id     TEXT NOT NULL,           -- ID na API TCGdex (api.tcgdex.net), usado pelo seed script
+                                          -- não é único: um mesmo set pode ter 1 linha por idioma
+                                          -- (ex: 'me04' → 'me04' PT-BR e 'me04-en' EN), ver migrations/20260716_sets_tcgdex_id_not_unique.sql
   pokemontcg_id TEXT,                   -- ID no pokemontcg.io, usado só para preço USD (nullable)
   id_prefix     TEXT NOT NULL,          -- prefixo do ID da carta, ex: 'pfl' → 'pfl-008'
   name          TEXT NOT NULL,          -- nome oficial PT-BR
