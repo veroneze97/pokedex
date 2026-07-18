@@ -3,8 +3,13 @@
  * faz upsert em `sets` (1 linha) e `cards` (N linhas) no Supabase.
  * Idempotente — pode rodar de novo sem duplicar.
  *
- * Uso: node --experimental-websocket --env-file=.env scripts/seed-set.js <tcgdex_id>
+ * Uso: node --experimental-websocket --env-file=.env scripts/seed-set.js <tcgdex_id> [locale]
  * Ex:  node --experimental-websocket --env-file=.env scripts/seed-set.js me02.5
+ * Ex:  node --experimental-websocket --env-file=.env scripts/seed-set.js me04 en
+ *
+ * locale (opcional, default 'pt'): idioma buscado na TCGdex. Para locale != 'pt',
+ * grava como uma coleção independente (id `${tcgdex_id}-${locale}`, nationality
+ * em maiúsculas do locale), sem afetar a versão já gravada em outro idioma.
  *
  * Requer no ambiente: SUPABASE_URL, SUPABASE_SERVICE_KEY
  */
@@ -16,17 +21,19 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY
 )
 
-const TCGDEX_API = 'https://api.tcgdex.net/v2/pt'
 const BATCH_SIZE = 8
 const BATCH_DELAY_MS = 300
 
 // Único dado que a API não expõe pronto para nossa tabela: o prefixo de ID
 // de carta (convenção interna). Tudo mais (nome, total, data, raridade) vem
 // direto da TCGdex — adicionar um set futuro só exige uma entrada aqui.
+// Chave composta 'tcgdex_id:locale' para versões em idioma diferente de PT.
 const ID_PREFIX_BY_SET = {
   'me02.5': 'me025',
   'me03':   'me03',
   'me04':   'me04',
+  'me04:en': 'me04en',
+  'me05:en': 'me05en',
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
@@ -37,13 +44,13 @@ async function fetchJson(url) {
   return res.json()
 }
 
-async function fetchCardsInBatches(cardIds) {
+async function fetchCardsInBatches(cardIds, tcgdexApi) {
   const details = []
   for (let i = 0; i < cardIds.length; i += BATCH_SIZE) {
     const batch = cardIds.slice(i, i + BATCH_SIZE)
     const results = await Promise.all(
       batch.map(id =>
-        fetchJson(`${TCGDEX_API}/cards/${id}`).catch(e => {
+        fetchJson(`${tcgdexApi}/cards/${id}`).catch(e => {
           console.warn(`  ⚠ falha em ${id}: ${e.message}`)
           return null
         })
@@ -56,32 +63,38 @@ async function fetchCardsInBatches(cardIds) {
   return details
 }
 
-async function seed(tcgdexId) {
-  const idPrefix = ID_PREFIX_BY_SET[tcgdexId]
+async function seed(tcgdexId, locale = 'pt') {
+  const lookupKey = locale === 'pt' ? tcgdexId : `${tcgdexId}:${locale}`
+  const idPrefix = ID_PREFIX_BY_SET[lookupKey]
   if (!idPrefix) {
-    console.error(`Set "${tcgdexId}" não está em ID_PREFIX_BY_SET. Adicione uma entrada antes de rodar.`)
+    console.error(`Set "${lookupKey}" não está em ID_PREFIX_BY_SET. Adicione uma entrada antes de rodar.`)
     process.exit(1)
   }
 
-  console.log(`Buscando set ${tcgdexId} na TCGdex...`)
-  const setData = await fetchJson(`${TCGDEX_API}/sets/${tcgdexId}`)
+  const setId = locale === 'pt' ? tcgdexId : `${tcgdexId}-${locale}`
+  const nationality = locale === 'pt' ? 'PT-BR' : locale.toUpperCase()
+  const tcgdexApi = `https://api.tcgdex.net/v2/${locale}`
+
+  console.log(`Buscando set ${tcgdexId} (${locale}) na TCGdex...`)
+  const setData = await fetchJson(`${tcgdexApi}/sets/${tcgdexId}`)
   console.log(`${setData.name} — ${setData.cards.length} cartas`)
 
   console.log('Buscando detalhes (raridade) de cada carta...')
-  const details = await fetchCardsInBatches(setData.cards.map(c => c.id))
+  const details = await fetchCardsInBatches(setData.cards.map(c => c.id), tcgdexApi)
 
   const cardRows = details.map(c => ({
     id: `${idPrefix}-${c.localId.padStart(3, '0')}`,
     name: c.name,
     number: c.localId.padStart(3, '0'),
-    set_code: tcgdexId,
-    nationality: 'PT-BR',
+    set_code: setId,
+    nationality,
     rarity: c.rarity || null,
     image_url: c.image ? `${c.image}/high.webp` : '',
+    tcgdex_card_id: c.id,
   }))
 
   const setRow = {
-    id: tcgdexId,
+    id: setId,
     tcgdex_id: tcgdexId,
     pokemontcg_id: null,
     id_prefix: idPrefix,
@@ -105,10 +118,11 @@ async function seed(tcgdexId) {
 }
 
 const tcgdexId = process.argv[2]
+const locale = process.argv[3] || 'pt'
 if (!tcgdexId) {
-  console.error('Uso: node --experimental-websocket --env-file=.env scripts/seed-set.js <tcgdex_id>')
+  console.error('Uso: node --experimental-websocket --env-file=.env scripts/seed-set.js <tcgdex_id> [locale]')
   console.error('Sets disponíveis:', Object.keys(ID_PREFIX_BY_SET).join(', '))
   process.exit(1)
 }
 
-seed(tcgdexId).catch(e => { console.error(e); process.exit(1) })
+seed(tcgdexId, locale).catch(e => { console.error(e); process.exit(1) })
