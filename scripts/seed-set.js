@@ -35,6 +35,7 @@ const ID_PREFIX_BY_SET = {
   'me04':   'me04',
   'me04:en': 'me04en',
   'me05:en': 'me05en',
+  'sv08.5': 'sv085',
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
