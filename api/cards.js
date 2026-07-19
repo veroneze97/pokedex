@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { getActiveSets } from './_sets.js'
+import { checkAuth } from './_auth.js'
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -8,17 +9,28 @@ const supabase = createClient(
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' })
+  if (!checkAuth(req, res)) return
 
   const sets = await getActiveSets(supabase)
   const setIds = sets.map(s => s.id)
 
-  const { data: cards, error: ce } = await supabase
-    .from('cards')
-    .select('*')
-    .in('set_code', setIds)
-    .order('number')
+  // O Supabase limita a 1000 linhas por resposta — com o catálogo passando
+  // desse total, uma única query corta cartas em silêncio. Pagina até
+  // esgotar (página menor que PAGE_SIZE = última página).
+  const PAGE_SIZE = 1000
+  const cards = []
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data: page, error: ce } = await supabase
+      .from('cards')
+      .select('*')
+      .in('set_code', setIds)
+      .order('number')
+      .range(from, from + PAGE_SIZE - 1)
 
-  if (ce) return res.status(500).json({ error: ce.message })
+    if (ce) return res.status(500).json({ error: ce.message })
+    cards.push(...page)
+    if (page.length < PAGE_SIZE) break
+  }
 
   const { data: collection, error: cole } = await supabase
     .from('collection')
