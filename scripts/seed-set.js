@@ -29,6 +29,7 @@ const BATCH_DELAY_MS = 300
 // direto da TCGdex — adicionar um set futuro só exige uma entrada aqui.
 // Chave composta 'tcgdex_id:locale' para versões em idioma diferente de PT.
 const ID_PREFIX_BY_SET = {
+  'me02':   'pfl',
   'me02.5': 'me025',
   'me03':   'me03',
   'me04':   'me04',
